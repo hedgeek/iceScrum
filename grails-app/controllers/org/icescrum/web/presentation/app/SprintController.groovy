@@ -22,16 +22,12 @@
  */
 package org.icescrum.web.presentation.app
 
+import grails.converters.JSON
+import grails.plugin.springcache.annotations.Cacheable
+import grails.plugins.springsecurity.Secured
 import org.icescrum.core.domain.Release
-
 import org.icescrum.core.domain.Sprint
 import org.icescrum.core.domain.Story
-
-import grails.converters.JSON
-import grails.converters.XML
-import grails.plugins.springsecurity.Secured
-import grails.plugin.springcache.annotations.Cacheable
-import org.icescrum.core.domain.Product
 
 @Secured('inProduct()')
 class SprintController {

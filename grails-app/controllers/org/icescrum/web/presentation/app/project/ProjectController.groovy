@@ -24,34 +24,28 @@
 
 package org.icescrum.web.presentation.app.project
 
+import org.springframework.web.servlet.support.RequestContextUtils as RCU
+
+import com.sun.syndication.io.SyndFeedOutput
+import feedsplugin.FeedBuilder
+import grails.converters.JSON
+import grails.plugin.fluxiable.Activity
+import grails.plugin.springcache.annotations.Cacheable
+import grails.plugins.springsecurity.Secured
+import org.apache.commons.io.FilenameUtils
+import org.codehaus.groovy.grails.plugins.springsecurity.SpringSecurityUtils
+import org.codehaus.groovy.grails.web.util.StreamCharBuffer
 import org.icescrum.core.domain.preferences.ProductPreferences
 import org.icescrum.core.domain.preferences.TeamPreferences
 import org.icescrum.core.domain.security.Authority
 import org.icescrum.core.support.ApplicationSupport
 import org.icescrum.core.support.ProgressSupport
-
 import org.icescrum.core.utils.BundleUtils
-
-import org.springframework.web.servlet.support.RequestContextUtils as RCU
-
-import grails.converters.JSON
-import grails.plugin.fluxiable.Activity
-import grails.plugin.springcache.annotations.Cacheable
-import grails.plugins.springsecurity.Secured
-import org.codehaus.groovy.grails.plugins.springsecurity.SpringSecurityUtils
 import org.springframework.security.access.AccessDeniedException
-import org.icescrum.core.domain.Product
-import org.icescrum.core.domain.Team
-import org.icescrum.core.domain.Release
-import org.icescrum.core.domain.PlanningPokerGame
-import org.icescrum.core.domain.Story
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.domain.User
-import feedsplugin.FeedBuilder
-import com.sun.syndication.io.SyndFeedOutput
-import org.codehaus.groovy.grails.web.util.StreamCharBuffer
-import org.apache.commons.io.FilenameUtils
+
 import java.text.DecimalFormat
+
+import org.icescrum.core.domain.*
 
 @Secured('stakeHolder() or inProduct()')
 class ProjectController {

@@ -32,11 +32,9 @@
     <is:loadJsVar/>
     <r:require modules="jquery,jquery-ui,jquery-ui-plugins,tagit,jquery-plugins,jqplot,icescrum${grailsApplication.config?.modulesResources ? ','+grailsApplication.config.modulesResources.join(',') : ''}"/>
     <sec:ifLoggedIn>
-        <script src="${resource(dir: 'js/timeline/timeline_ajax', file: 'simile-ajax-api.js?bundle=true')}"
-                type="text/javascript"></script>
-        <script src="${resource(dir: 'js/timeline/timeline_js', file: 'timeline-api.js?bundle=true')}"
-                type="text/javascript"></script>
-        <script src="${resource(dir: 'js/timeline', file: 'icescrum-painter.js')}" type="text/javascript"></script>
+        <script type="text/javascript" src="${grailsApplication.config.grails.serverURL}/js/timeline/timeline_ajax/simile-ajax-api.js?bundle=true"></script>
+        <script type="text/javascript" src="${grailsApplication.config.grails.serverURL}/js/timeline/timeline_js/timeline-api.js?bundle=true"></script>
+        <script type="text/javascript" src="${grailsApplication.config.grails.serverURL}/js/timeline/icescrum-painter.js"></script>
     </sec:ifLoggedIn>
     <r:layoutResources/>
     <g:layoutHead/>

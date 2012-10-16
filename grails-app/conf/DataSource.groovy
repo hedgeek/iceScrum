@@ -21,42 +21,37 @@
  * Stephane Maldini (stephane.maldini@icescrum.com)
  */
 
-dataSource {
-    driverClassName = "org.hsqldb.jdbcDriver"
-    username = "sa"
-    password = ""
-}
 hibernate {
     cache.use_second_level_cache = true
     cache.use_query_cache = true
-    cache.provider_class = 'net.sf.ehcache.hibernate.EhCacheProvider'
+    cache.region.factory_class = 'net.sf.ehcache.hibernate.EhCacheRegionFactory'
+}
+
+dataSource {
+    driverClassName = "org.h2.Driver"
+    username = "sa"
+    password = ""
 }
 
 // environment specific settings
 environments {
     development {
         dataSource {
-            /*driverClassName="com.mysql.jdbc.Driver"
-            dialect="org.hibernate.dialect.MySQL5InnoDBDialect"
-            url="jdbc:mysql://localhost:3306/kagilum?useUnicode=true&characterEncoding=utf8"
-            username="root"
-            password="root"
-            dbCreate = "update"*/
-            dbCreate = "create-drop" // one of 'create', 'create-drop','update'
-            url = "jdbc:hsqldb:file:devDba"
-            loggingSql = false
+            dbCreate = "update" // one of 'create', 'create-drop','update'
+            url = "jdbc:h2:file:prodDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE"
+            loggingSql = true
         }
     }
     test {
         dataSource {
             dbCreate = "update"
-            url = "jdbc:hsqldb:file:testDba"
+            url = "jdbc:h2:file:testDb;MVCC=TRUE;LOCK_TIMEOUT=10000"
         }
     }
     production {
         dataSource {
             dbCreate = "update"
-            url = "jdbc:hsqldb:file:prodDba;shutdown=true"
+            url = "jdbc:h2:file:prodDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE"
             pooled = true
             properties {
                 maxActive = 100

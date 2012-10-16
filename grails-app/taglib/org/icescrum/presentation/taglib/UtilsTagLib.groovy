@@ -27,18 +27,17 @@ package org.icescrum.presentation.taglib
 import org.springframework.web.servlet.support.RequestContextUtils as RCU
 
 import grails.converters.JSON
+import grails.plugin.springcache.key.CacheKeyBuilder
+import grails.plugin.springcache.taglib.ResultAndBuffer
+import groovy.xml.MarkupBuilder
+import org.apache.commons.lang.StringEscapeUtils
 import org.codehaus.groovy.grails.plugins.springsecurity.SpringSecurityUtils
-import org.icescrum.components.UtilsWebComponents
+import org.codehaus.groovy.grails.web.pages.FastStringWriter
+import org.codehaus.groovy.grails.web.pages.GroovyPageOutputStack
 import org.icescrum.core.domain.security.Authority
 import org.icescrum.core.support.ApplicationSupport
 import org.icescrum.core.utils.BundleUtils
-import org.apache.commons.lang.StringEscapeUtils
-import groovy.xml.MarkupBuilder
 import org.springframework.validation.Errors
-import grails.plugin.springcache.key.CacheKeyBuilder
-import org.codehaus.groovy.grails.web.pages.GroovyPageOutputStack
-import org.codehaus.groovy.grails.web.pages.FastStringWriter
-import grails.plugin.springcache.taglib.ResultAndBuffer
 
 class UtilsTagLib {
 
@@ -55,8 +54,8 @@ class UtilsTagLib {
                           baseUrl: "${createLink(controller: 'scrumOS')}",
                           baseUrlProduct: ${p ? '\'' + createLink(controller: 'scrumOS', params: p) + '/\'' : null},
                           streamUrl: "${createLink(controller: 'scrumOS')}stream/app${params.product ? '?product=' + current.id : '' }",
-                          urlOpenWidget:"${createLink(controller: 'scrumOS', action: 'openWidget', params: p)}",
-                          urlOpenWindow:"${createLink(controller: 'scrumOS', action: 'openWindow', params: p)}",
+                          urlOpenWidget:"${createLink(controller: 'scrumOS', action: 'openWidget', params: p, mapping:p ? 'scrumOSURL' : null)}",
+                          urlOpenWindow:"${createLink(controller: 'scrumOS', action: 'openWindow', params: p, mapping:p ? 'scrumOSURL' : null)}",
                           deleteConfirmMessage:"${message(code: 'is.confirm.delete').encodeAsJavaScript()}",
                           cancelFormConfirmMessage:"${message(code: 'is.confirm.cancel.form').encodeAsJavaScript()}",
                           locale:'${locale}',

@@ -1093,8 +1093,8 @@
                         var to = $(object);
                         var placeholder = $(ui.placeholder);
                         var from = $(ui.sender);
-
-                        if (this.current){
+                        var sprintID = to.closest('table.kanban').data('elemid');
+                        if (this.current && this.current.id == sprintID){
                             if(this.current.state != this.STATE_INPROGRESS){
                                 placeholder.html(this.i18n.noDropMessage);
                                 placeholder.addClass('no-drop');

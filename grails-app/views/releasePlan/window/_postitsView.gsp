@@ -85,20 +85,19 @@
                                       params: '\'product='+params.product+'&id=\'+ui.draggable.data(\'elemid\')+\'&sprint.id='+sprint.id+'\'')]">
                     <is:backlogElementLayout
                             id="plan-${controllerName}-${sprint.id}"
-                            sortable='[
+                            sortable="[
                               rendered:poOrSm && sprint.state != Sprint.STATE_DONE,
-                              handle:".postit-layout .postit-sortable",
-                              connectWith:".backlog",
-                              containment:".event-overflow",
-                              change:"jQuery.icescrum.story.checkDependsOnPostitsView(ui);",
-                              placeholder:"ui-drop-hover-postit-rect ui-corner-all",
-                              update:"if(jQuery(\"#backlog-layout-plan-${controllerName}-${sprint.id} .postit-rect\").index(ui.item) == -1 || ui.sender != undefined){return}else{${is.changeRank(selector:"#backlog-layout-plan-${controllerName}-${sprint.id} .postit-rect",controller:"story",action:"rank",name:"story.rank",onSuccess:"jQuery.icescrum.story.updateRank(params,data,\"#backlog-layout-plan-${controllerName}-${sprint.id}\");", params:[product:params.product])}}",
-                              receive:"event.stopPropagation();"+remoteFunction(action:"plan",
-                                          controller:"story",
-                                          onFailure: "jQuery(ui.sender).sortable(\"cancel\");",
-                                          onSuccess:"jQuery.event.trigger(\"plan_story\",data.story); if(data.oldSprint){ jQuery.event.trigger(\"sprintMesure_sprint\",data.oldSprint); }",
-                                          params: "\"product=${params.product}&id=\"+ui.item.data(\"elemid\")+\"&sprint.id=${sprint.id}&position=\"+(jQuery(\"#backlog-layout-plan-${controllerName}-${sprint.id} .postit-rect\").index(ui.item)+1)")
-                      ]'
+                              handle:'.postit-layout .postit-sortable',
+                              connectWith:'.backlog',
+                              receive:'event.stopPropagation();' + remoteFunction(action:'plan',
+                                                                                controller:'story',
+                                                                                onFailure: 'jQuery(ui.sender).sortable(\'cancel\');',
+                                                                                onSuccess:'jQuery.event.trigger(\'plan_story\',data.story); if(data.oldSprint){ jQuery.event.trigger(\'sprintMesure_sprint\',data.oldSprint); }',
+                                                                                params: '\'product='+ params.product + '&id=\'+ui.item.data(\'elemid\')+\'&sprint.id=' + sprint.id + '&position=\'+(jQuery(\'#backlog-layout-plan-'+ controllerName + '-' + sprint.id + ' .postit-rect\').index(ui.item)+1)'),
+                              containment:'.event-overflow',
+                              change:'jQuery.icescrum.story.checkDependsOnPostitsView(ui);',
+                              placeholder:'ui-drop-hover-postit-rect ui-corner-all',
+                              update:'if(jQuery(\'#backlog-layout-plan-' + controllerName + '-' + sprint.id + ' .postit-rect\').index(ui.item) == -1 || ui.sender != undefined){ return; }else{ '+ is.changeRank(selector:'#backlog-layout-plan-'+ controllerName + '-' + sprint.id + ' .postit-rect',controller:'story',action:'rank',name:'story.rank',onSuccess:'jQuery.icescrum.story.updateRank(params,data,\'#backlog-layout-plan-' + controllerName + '-' + sprint.id + '\');', params:[product:params.product])+ '}']"
                             dblclickable="[selector:'.postit-rect',callback:'$.icescrum.displayQuicklook(obj)']"
                             value="${sprint.stories?.sort{it.rank}}"
                             var="story"
@@ -114,6 +113,7 @@
             </is:event>
     </g:each>
 </is:eventline>
+
 
 <g:include view="/releasePlan/window/_blankSprint.gsp" model="[sprints:sprints,release:release]"
            params="[product:params.product]"/>
@@ -160,3 +160,4 @@
 <is:onStream
         on=".event-overflow"
         events="[[object:'feature',events:['update']]]"/>
+

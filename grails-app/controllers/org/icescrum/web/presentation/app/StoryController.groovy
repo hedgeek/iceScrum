@@ -22,27 +22,19 @@
  */
 package org.icescrum.web.presentation.app
 
-import org.icescrum.core.domain.Story
-
-import org.icescrum.core.utils.BundleUtils
-import org.icescrum.core.domain.Feature
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.domain.Product
-import org.icescrum.core.domain.Release
-import org.icescrum.core.domain.User
 import grails.converters.JSON
 import grails.converters.XML
 import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
-import org.icescrum.plugins.attachmentable.interfaces.AttachmentException
-import org.grails.followable.FollowLink
 import grails.util.GrailsNameUtils
-import org.icescrum.core.domain.Task
-import org.springframework.web.servlet.support.RequestContextUtils
 import org.grails.comments.Comment
-import org.icescrum.core.event.IceScrumStoryEvent
 import org.grails.followable.FollowException
-import org.icescrum.core.domain.AcceptanceTest
+import org.grails.followable.FollowLink
+import org.icescrum.core.event.IceScrumStoryEvent
+import org.icescrum.core.utils.BundleUtils
+import org.icescrum.plugins.attachmentable.interfaces.AttachmentException
+import org.springframework.web.servlet.support.RequestContextUtils
+import org.icescrum.core.domain.*
 
 class StoryController {
 
@@ -95,8 +87,6 @@ class StoryController {
                 render(status: 403)
             } else {
                  withFormat {
-                    json { renderRESTJSON(text:story) }
-                    xml  { renderRESTXML(text:story) }
                     html {
                         def permalink = createLink(absolute: true, mapping: "shortURL", params: [product: product.pkey], id: story.uid)
                         def criteria = FollowLink.createCriteria()
@@ -127,7 +117,13 @@ class StoryController {
                                 isFollower: isFollower,
                         ])
                     }
-                }
+                    json {
+                         renderRESTJSON(text:story)
+                    }
+                    xml  {
+                         renderRESTXML(text:story)
+                    }
+                 }
             }
         }
     }
@@ -318,7 +314,7 @@ class StoryController {
                     if (params.name == 'effort' && story."${params.name}" == null)
                         returnValue = '?'
                     else
-                        returnValue = story."${params.name}".encodeAsHTML()
+                        returnValue = story[params.name].encodeAsHTML()
                 }
                 def version = story.isDirty() ? story.version + 1 : story.version
                 render(status: 200, text: [version: version, value: returnValue ?: '', object: story] as JSON)

@@ -24,16 +24,14 @@
 
 package org.icescrum.web.presentation.app.project
 
+import grails.converters.JSON
+import grails.plugin.springcache.annotations.Cacheable
+import grails.plugins.springsecurity.Secured
 import org.icescrum.core.domain.Actor
 import org.icescrum.core.domain.Product
 import org.icescrum.core.domain.Story
 import org.icescrum.core.support.ProgressSupport
 import org.icescrum.core.utils.BundleUtils
-
-import grails.converters.JSON
-import grails.converters.XML
-import grails.plugin.springcache.annotations.Cacheable
-import grails.plugins.springsecurity.Secured
 import org.icescrum.plugins.attachmentable.interfaces.AttachmentException
 
 @Secured('inProduct()')
@@ -93,10 +91,10 @@ class ActorController {
                 else if (params.name == 'useFrequency')
                     returnValue = message(code: BundleUtils.actorFrequencies[actor.useFrequency])
                 else if (params.name == 'description' || params.name == 'satisfactionCriteria') {
-                    returnValue = actor."${params.name}"?.encodeAsHTML()?.encodeAsNL2BR()
+                    returnValue = actor[params.name]?.encodeAsHTML()?.encodeAsNL2BR()
                 }
                 else
-                    returnValue = actor."${params.name}".encodeAsHTML()
+                    returnValue = actor[params.name].encodeAsHTML()
                 def version = actor.isDirty() ? actor.version + 1 : actor.version
                 render(status: 200, text: [version: version, value: returnValue ?: ''] as JSON)
                 return

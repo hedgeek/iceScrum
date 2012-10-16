@@ -23,16 +23,10 @@
 
 package org.icescrum.presentation.taglib
 
-import org.icescrum.core.domain.security.Authority
-
-import org.springframework.security.core.authority.GrantedAuthorityImpl
-
 class SecurityTagLib {
   static namespace = 'is'
 
   def securityService
-  def aclUtilService
-  static final userAuthorities = [new GrantedAuthorityImpl(Authority.ROLE_USER)]
 
   def displayRole = {attrs ->
     def res = []

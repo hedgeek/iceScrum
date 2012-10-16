@@ -55,6 +55,9 @@
         var confirm, loading, method, duration;
 
         confirm = element.data("ajaxConfirm");
+        if (confirm){
+            confirm = confirm.replace(/\\n/g,"\n");
+        }
         if (confirm && !window.confirm(confirm)) {
             return;
         }

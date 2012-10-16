@@ -24,8 +24,8 @@
 
 import org.apache.log4j.DailyRollingFileAppender
 import org.apache.log4j.PatternLayout
-import org.icescrum.core.support.ApplicationSupport
 import org.codehaus.groovy.grails.plugins.web.taglib.JavascriptTagLib
+import org.icescrum.core.support.ApplicationSupport
 import org.icescrum.web.JQueryProvider
 
 /*
@@ -180,25 +180,27 @@ grails.enable.native2ascii = true
 grails.logging.jul.usebridge = true
 // packages to include in Spring bean scanning
 grails.spring.bean.packages = []
-
-grails.views.javascript.library = 'jquery'
+// enable query caching by default
+grails.hibernate.cache.queries = true
+grails.views.javascript.library="jquery"
+grails.hibernate.cache.queries = false
 
 environments {
     development {
         icescrum.debug.enable = true
         grails.entryPoints.debug = false
-        grails.tomcat.nio = true
+        grails.logging.jul.usebridge = true
         //grails.resources.debug=true
     }
     test {
         icescrum.debug.enable = true
         grails.entryPoints.debug = false
-        grails.tomcat.nio = true
     }
     production {
         grails.config.locations = ["classpath:config.properties"]
         icescrum.debug.enable = false
         grails.entryPoints.debug = false
+        grails.logging.jul.usebridge = false
     }
 }
 
@@ -208,6 +210,7 @@ println "log dir : ${icescrum.log.dir}"
 
 log4j = {
     def logLayoutPattern = new PatternLayout("%d [%t] %-5p %c %x - %m%n")
+    def debugIS = config.icescrum.debug?.enable?:true
 
     error 'org.codehaus.groovy.grails.plugins',
           'org.grails.plugin',
@@ -226,21 +229,21 @@ log4j = {
 
     warn  'org.mortbay.log'
 
-    if (grails.entryPoints.debug) {
+    if (config.grails.entryPoints.debug) {
         debug 'org.icescrum.plugins.entryPoints'
     }
 
-    if (ApplicationSupport.booleanValue(icescrum.debug.enable)) {
-        debug 'grails.app.service.org.icescrum'
-        debug 'grails.app.controller.org.icescrum'
+    if (ApplicationSupport.booleanValue(debugIS)) {
+        debug 'grails.app.services.org.icescrum'
+        debug 'grails.app.controllers.org.icescrum'
         debug 'grails.app.domain.org.icescrum'
         debug 'grails.app.org.icescrum'
         debug 'org.icescrum.atmosphere'
         debug 'org.icescrum.cache'
         debug 'org.icescrum.core'
         debug 'net.sf.jasperreports'
-        debug 'grails.app.service.com.kagilum'
-        debug 'grails.app.controller.com.kagilum'
+        debug 'grails.app.services.com.kagilum'
+        debug 'grails.app.controllers.com.kagilum'
         debug 'grails.app.domain.com.kagilum'
         debug 'com.kagilum'
         /*debug 'grails.plugin.springcache'
@@ -253,16 +256,16 @@ log4j = {
 
     appenders {
         appender new DailyRollingFileAppender(name: "icescrumFileLog",
-                fileName: "${icescrum.log.dir}/${appName}.log",
+                fileName: "${config.icescrum.log.dir}/icescrum.log",
                 datePattern: "'.'yyyy-MM-dd",
                 layout: logLayoutPattern
         )
 
-        rollingFile name: "stacktrace", maxFileSize: 1024, file: "${icescrum.log.dir}/stacktrace.log"
+        rollingFile name: "stacktrace", maxFileSize: 1024, file: "${config.icescrum.log.dir}/stacktrace.log"
     }
 
     root {
-        if (ApplicationSupport.booleanValue(icescrum.debug.enable)) {
+        if (ApplicationSupport.booleanValue(debugIS)) {
             debug 'stdout', 'icescrumFileLog'
             error 'stdout', 'icescrumFileLog'
             info 'stdout', 'icescrumFileLog'
@@ -294,6 +297,8 @@ springcache {
     caches {
         applicationCache {
             eternal = true
+            timeToIdle = 0
+            timeToLive = 0
         }
     }
 }
@@ -338,7 +343,8 @@ grails {
 CLIENT MODULES SECTION
 
 */
-grails.resources.caching.excludes = ['js/timeline**/*.js']
+grails.resources.caching.excludes = ['/js/timeline**/*.*']
+grails.resources.adhoc.excludes = ['/dbconsole/**/*.*']
 grails.resources.zip.excludes = ['/**/*.png', '/**/*.gif', '/**/*.jpg', '/**/*.gz']
 
 environments {

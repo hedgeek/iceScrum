@@ -22,18 +22,13 @@
  */
 package org.icescrum.web.presentation.app
 
-import org.icescrum.core.domain.User
-import org.icescrum.core.domain.Task
-import org.icescrum.core.domain.Story
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.utils.BundleUtils
 import grails.converters.JSON
-import grails.converters.XML
 import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
-import org.icescrum.plugins.attachmentable.interfaces.AttachmentException
-import org.icescrum.core.domain.Product
 import org.grails.taggable.Tag
+import org.icescrum.core.utils.BundleUtils
+import org.icescrum.plugins.attachmentable.interfaces.AttachmentException
+import org.icescrum.core.domain.*
 
 @Secured('inProduct()')
 class TaskController {
@@ -56,7 +51,8 @@ class TaskController {
     }
 
     def index = {
-        withTask { Task task ->
+        def id = params.uid?.toInteger() ?: params.id?.toLong() ?: null
+        withTask(id, params.uid?true:false) { Task task ->
             def product = task.parentProduct
             def user = springSecurityService.currentUser
             if (product.preferences.hidden && !user) {
@@ -67,15 +63,15 @@ class TaskController {
                 return
             } else {
                  withFormat {
-                    json { renderRESTJSON(text:task) }
-                    xml  { renderRESTXML(text:task) }
-                    html {
-                        render(view: 'details', model: [
-                            task: task,
-                            taskStateCode: BundleUtils.taskStates[task.state],
-                            taskTypeCode: BundleUtils.taskTypes[task.type]
-                        ])
-                    }
+                     html {
+                         render(view: 'details', model: [
+                                 task: task,
+                                 taskStateCode: BundleUtils.taskStates[task.state],
+                                 taskTypeCode: BundleUtils.taskTypes[task.type]
+                         ])
+                     }
+                     json { renderRESTJSON(text:task) }
+                     xml  { renderRESTXML(text:task) }
                  }
             }
         }

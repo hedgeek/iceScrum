@@ -66,12 +66,11 @@
         </is:kanbanColumn>
         <g:each in="${columns}" var="column">
             <is:kanbanColumn key="${column.key}">
-                <g:each in="${urgentTasks?.sort{it.rank}?.findAll{it.state == column.key}}" var="task">
+                <g:each in="${urgentTasks?.sort{it.rank}?.findAll{it.state == key}}" var="task">
                     <is:cache  cache="taskCache" key="postit-${task.id}-${task.lastUpdated}">
                         <g:include view="/task/_postit.gsp" model="[task:task,user:user]" params="[product:params.product]"/>
                     </is:cache>
                 </g:each>
-
             </is:kanbanColumn>
         </g:each>
     </is:kanbanRow>
@@ -97,7 +96,7 @@
 
         <g:each in="${columns}" var="column" status="i">
             <is:kanbanColumn key="${column.key}">
-                <g:each in="${recurrentTasks?.sort{it.rank}?.findAll{ it.state == column.key} }" var="task">
+                <g:each in="${recurrentTasks?.sort{it.rank}?.findAll{ it.state == key} }" var="task">
                     <is:cache cache="taskCache" key="postit-${task.id}-${task.lastUpdated}">
                         <g:include view="/task/_postit.gsp" model="[task:task,user:user]"
                                    params="[product:params.product]"/>
@@ -127,9 +126,11 @@
         %{-- Workflow Columns --}%
             <g:each in="${columns}" var="column">
                 <is:kanbanColumn key="${column.key}">
-                    <g:each in="${story.tasks?.sort{it.rank}?.findAll{ (user.preferences.hideDoneState) ? (it.state == column.key && it.state != Task.STATE_DONE) : (it.state == column.key) }}"
+                    <g:each in="${story.tasks?.sort{it.rank}?.findAll{ (user.preferences.hideDoneState) ? (it.state == key && it.state != Task.STATE_DONE) : (it.state == key) }}"
                             var="task">
+                            <is:cache cache="taskCache" key="postit-${task.id}-${task.lastUpdated}">
                                 <g:include view="/task/_postit.gsp" model="[task:task,user:user]" params="[product:params.product]"/>
+                            </is:cache>
                     </g:each>
                 </is:kanbanColumn>
             </g:each>
@@ -153,7 +154,7 @@
     %{-- Workflow Columns --}%
         <g:each in="${columns}" var="column">
             <is:kanbanColumn key="${column.key}">
-                <g:each in="${story.tasks?.sort{it.rank}?.findAll{ (hideDoneState) ? (it.state == column.key && it.state != Task.STATE_DONE) : (it.state == column.key) }}"
+                <g:each in="${story.tasks?.sort{it.rank}?.findAll{ (hideDoneState) ? (it.state == key && it.state != Task.STATE_DONE) : (it.state == key) }}"
                         var="task">
                     <g:include view="/task/_postit.gsp" model="[task:task,user:user]" params="[product:params.product]"/>
                 </g:each>
@@ -211,7 +212,7 @@
     </g:if>
 
     <is:sortable rendered="${sprint.state != Sprint.STATE_DONE}"
-                 on="table.kanban td.kanban-col:not(:first-child)"
+                 on="table.kanban tbody:not([type=storyDone]) td.kanban-col:not(:first-child)"
                  handle="p.postit-sortable"
                  containment="#window-content-sprintPlan table"
                  cancel=".ui-selectable-disabled"

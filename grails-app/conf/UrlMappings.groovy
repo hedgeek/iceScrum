@@ -20,12 +20,13 @@
  * Stephane Maldini (stephane.maldini@icescrum.com)
  */
 
+import com.mysql.jdbc.CommunicationsException
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.acls.model.NotFoundException
 import org.springframework.transaction.CannotCreateTransactionException
-import com.mysql.jdbc.CommunicationsException
 
 class UrlMappings {
+
     static mappings = {
 
         "/$controller/$action/$id?" {
@@ -75,4 +76,5 @@ class UrlMappings {
         "500"(controller: 'errors', action: 'handleDatabase', exception: CannotCreateTransactionException)
         "500"(controller: 'errors', action: 'handleDatabase', exception: CommunicationsException)
     }
+
 }

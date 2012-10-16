@@ -23,17 +23,18 @@
  */
 package org.icescrum.web.presentation.app.project
 
-import org.icescrum.core.support.ProgressSupport
-import org.icescrum.core.utils.BundleUtils
 import grails.converters.JSON
 import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
-import org.icescrum.plugins.attachmentable.interfaces.AttachmentException
-import org.icescrum.core.domain.Product
+import org.grails.taggable.Tag
 import org.icescrum.core.domain.Feature
 import org.icescrum.core.domain.PlanningPokerGame
+import org.icescrum.core.domain.Product
 import org.icescrum.core.domain.Story
-import org.grails.taggable.Tag
+import org.icescrum.core.support.ProgressSupport
+import org.icescrum.core.utils.BundleUtils
+import org.icescrum.plugins.attachmentable.interfaces.AttachmentException
+
 import java.text.DecimalFormat
 
 @Secured('inProduct()')
@@ -100,7 +101,7 @@ class FeatureController {
                         returnValue = feature.description?.encodeAsHTML()?.encodeAsNL2BR()
                     }
                     else
-                        returnValue = feature."${params.name}".encodeAsHTML()
+                        returnValue = feature[params.name].encodeAsHTML()
 
                     def version = feature.isDirty() ? feature.version + 1 : feature.version
                     render(status: 200, text: [version: version, value: returnValue ?: '', object: feature] as JSON)

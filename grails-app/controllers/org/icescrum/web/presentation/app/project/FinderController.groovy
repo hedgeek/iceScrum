@@ -1,16 +1,9 @@
 package org.icescrum.web.presentation.app.project
 
-import org.grails.taggable.Tag
 import grails.converters.JSON
-import org.icescrum.core.domain.Product
-import org.icescrum.core.domain.Actor
-import org.icescrum.core.utils.BundleUtils
-import org.icescrum.core.domain.Story
-import org.icescrum.core.domain.Feature
-import org.icescrum.core.domain.Task
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.domain.User
 import grails.plugins.springsecurity.Secured
+import org.grails.taggable.Tag
+import org.icescrum.core.domain.*
 
 class FinderController {
 

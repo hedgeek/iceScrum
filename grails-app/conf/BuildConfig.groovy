@@ -22,26 +22,23 @@
  * Manuarii Stein (manuarii.stein@icescrum.com)
  */
 
-import grails.util.GrailsNameUtils
 import grails.util.Environment
+import grails.util.GrailsNameUtils
 
+grails.servlet.version = "3.0" // Change depending on target container compliance (2.5 or 3.0)
 grails.project.class.dir = "target/classes"
 grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
+grails.project.target.level = 1.6
+grails.project.source.level = 1.6
 grails.project.war.file = "target/${appName}.war"
 
 grails.project.war.osgi.headers = false
+grails.tomcat.nio = true
 
-def environment = Environment.getCurrent()
-
-if (environment != Environment.PRODUCTION){
-    println "use inline plugin in env: ${environment}"
+if (Environment.current != Environment.PRODUCTION){
+    println "use inline plugin in env: ${Environment.current}"
     grails.plugin.location.'icescrum-core' = '../plugins/icescrum-core'
-}
-
-coverage {
-    enabledByDefault = false
-    xml = true
 }
 
 grails.war.resources = { stagingDir ->
@@ -55,7 +52,7 @@ grails.war.resources = { stagingDir ->
 grails.project.dependency.resolution = {
     // inherit Grails' default dependencies
     inherits("global"){
-        excludes "xml-apis"
+        excludes "xml-apis", "maven-publisher"
     }
     log "warn" // log level of Ivy resolver, either 'error', 'warn', 'info', 'debug' or 'verbose'
     repositories {
@@ -77,17 +74,8 @@ grails.project.dependency.resolution = {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes eg.
         test 'xmlunit:xmlunit:1.3'
         runtime 'mysql:mysql-connector-java:5.1.18'
-        runtime 'commons-dbcp:commons-dbcp:1.4'
-    }
-
-    if (environment == Environment.PRODUCTION){
-        plugins {
-            compile "org.icescrum:icescrum-core:1.6-SNAPSHOT"
-            compile ":tomcat:1.3.9"
-        }
-    }else{
-        plugins {
-            compile ":tomcatnio:1.3.4"
+        compile("net.sf.ehcache:ehcache-web:2.0.3") {
+            excludes "ehcache-core", "xml-apis" // ehcache-core is provided by Grails
         }
     }
 
@@ -96,12 +84,16 @@ grails.project.dependency.resolution = {
         compile ":cache-headers:1.1.5"
         compile ":cached-resources:1.0"
         compile ":feeds:1.5"
-        compile ":hibernate:1.3.9"
-        compile ":resources:1.2.RC2"
         compile ":session-temp-files:1.0"
         compile ":zipped-resources:1.0"
         compile ":yui-minify-resources:0.1.5"
-
+        runtime ":hibernate:$grailsVersion"
+        runtime ":resources:1.1.6"
+        build ":tomcat:$grailsVersion"
+        if (Environment.current == Environment.PRODUCTION){
+            println "using icescrum-core zip"
+            compile "org.icescrum:icescrum-core:2.0.3"
+        }
     }
 }
 

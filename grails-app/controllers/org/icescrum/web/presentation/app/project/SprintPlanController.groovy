@@ -26,21 +26,12 @@
 
 package org.icescrum.web.presentation.app.project
 
-import org.icescrum.core.support.MenuBarSupport
-import org.icescrum.core.support.ProgressSupport
-
-import org.icescrum.core.utils.BundleUtils
-
 import grails.converters.JSON
 import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
-import org.icescrum.core.domain.User
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.domain.PlanningPokerGame
-import org.icescrum.core.domain.Task
-import org.icescrum.core.domain.Story
-import org.icescrum.core.domain.Product
-import org.icescrum.core.domain.Release
+import org.icescrum.core.support.ProgressSupport
+import org.icescrum.core.utils.BundleUtils
+import org.icescrum.core.domain.*
 
 @Secured('inProduct()')
 class SprintPlanController {
@@ -214,7 +205,7 @@ class SprintPlanController {
                 returnValue = task.description?.encodeAsHTML()?.encodeAsNL2BR()
                 returnValue = returnValue ?: ''
             } else {
-                returnValue = task."${params.name}".encodeAsHTML()
+                returnValue = task[params.name].encodeAsHTML()
                 returnValue = returnValue ?: ''
             }
 

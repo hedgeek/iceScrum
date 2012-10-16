@@ -23,21 +23,16 @@
 
 package org.icescrum.web.upload
 
+import org.apache.commons.fileupload.FileItem
+import org.apache.commons.fileupload.FileUploadBase
+import org.apache.commons.fileupload.FileUploadException
+import org.apache.commons.fileupload.servlet.ServletFileUpload
+import org.springframework.web.multipart.MaxUploadSizeExceededException
+import org.springframework.web.multipart.MultipartException
+import org.springframework.web.multipart.MultipartHttpServletRequest
 import org.springframework.web.multipart.commons.CommonsMultipartResolver
 
-import org.apache.commons.fileupload.servlet.ServletFileUpload
-
-import org.springframework.web.multipart.MultipartHttpServletRequest
-import org.springframework.web.multipart.MultipartException
-
 import javax.servlet.http.HttpServletRequest
-
-import org.apache.commons.fileupload.FileUploadBase
-import org.springframework.web.multipart.MaxUploadSizeExceededException
-import org.apache.commons.fileupload.FileUploadException
-import org.apache.commons.fileupload.FileItem
-
-import org.icescrum.web.upload.AjaxProgressListener
 import org.springframework.web.multipart.commons.CommonsFileUploadSupport.MultipartParsingResult
 
 class AjaxMultipartResolver extends CommonsMultipartResolver{

@@ -23,17 +23,14 @@
 
 package org.icescrum.web.presentation.app.project
 
-import org.icescrum.core.domain.Product
-import org.icescrum.core.domain.Release
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.domain.User
-import org.icescrum.core.support.MenuBarSupport
-import org.icescrum.core.support.ProgressSupport
-import org.icescrum.core.utils.BundleUtils
-
 import grails.converters.JSON
 import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
+import org.icescrum.core.domain.Product
+import org.icescrum.core.domain.Release
+import org.icescrum.core.domain.Sprint
+import org.icescrum.core.support.ProgressSupport
+import org.icescrum.core.utils.BundleUtils
 
 @Secured('(isAuthenticated() and stakeHolder()) or inProduct()')
 class TimelineController {

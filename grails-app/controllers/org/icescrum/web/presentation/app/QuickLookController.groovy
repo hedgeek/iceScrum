@@ -23,15 +23,15 @@
 
 package org.icescrum.web.presentation.app
 
+import grails.converters.JSON
+import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
 import org.icescrum.core.domain.Actor
 import org.icescrum.core.domain.Feature
 import org.icescrum.core.domain.Story
 import org.icescrum.core.domain.Task
-import org.springframework.web.servlet.support.RequestContextUtils
 import org.icescrum.core.utils.BundleUtils
-import grails.plugin.springcache.annotations.Cacheable
-import grails.converters.JSON
+import org.springframework.web.servlet.support.RequestContextUtils
 
 @Secured("stakeHolder() or inProduct()")
 class QuickLookController {

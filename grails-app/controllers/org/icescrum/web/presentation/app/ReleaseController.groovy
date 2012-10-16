@@ -22,16 +22,12 @@
  */
 package org.icescrum.web.presentation.app
 
-import org.icescrum.core.domain.Release
-
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.domain.Product
-
 import grails.converters.JSON
-import grails.converters.XML
-import grails.plugins.springsecurity.Secured
 import grails.plugin.springcache.annotations.Cacheable
-import com.sun.org.apache.regexp.internal.RE
+import grails.plugins.springsecurity.Secured
+import org.icescrum.core.domain.Product
+import org.icescrum.core.domain.Release
+import org.icescrum.core.domain.Sprint
 
 @Secured('inProduct()')
 class ReleaseController {

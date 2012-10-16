@@ -29,6 +29,13 @@ class ProductUrlMappings {
             action = 'textileParser'
         }
 
+        name scrumOSURL: "/p/$product/$action/$window?/$id?" {
+            controller = 'scrumOS'
+            constraints {
+                id(matches: /\d*/)
+                product(matches: /[0-9A-Z]*/)
+            }
+        }
 
         "/p/$product/" {
             controller = 'scrumOS'
@@ -77,14 +84,6 @@ class ProductUrlMappings {
             controller = 'scrumOS'
             constraints {
                 actionWindow(matches: /[a-zA-Z]*/)
-                product(matches: /[0-9A-Z]*/)
-            }
-        }
-
-        "/p/$product/$action/$window?/$id?" {
-            controller = 'scrumOS'
-            constraints {
-                id(matches: /\d*/)
                 product(matches: /[0-9A-Z]*/)
             }
         }

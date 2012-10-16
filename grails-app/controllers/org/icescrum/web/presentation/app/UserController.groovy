@@ -27,6 +27,7 @@ import org.springframework.web.servlet.support.RequestContextUtils as RCU
 
 import grails.converters.JSON
 import grails.plugin.fluxiable.Activity
+import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
 import org.icescrum.core.domain.Product
 import org.icescrum.core.domain.Story
@@ -35,7 +36,6 @@ import org.icescrum.core.domain.User
 import org.icescrum.core.domain.preferences.UserPreferences
 import org.icescrum.core.support.ApplicationSupport
 import org.springframework.mail.MailException
-import grails.plugin.springcache.annotations.Cacheable
 
 class UserController {
 
@@ -60,12 +60,12 @@ class UserController {
         }
         if (locale)
             RCU.getLocaleResolver(request).setLocale(request, response, new Locale(locale))
-        render(template: 'window/register', model: [user: new User()])
+        render view: '/user/register', model: [user: new User()]
     }
 
 
     @Secured('isAuthenticated()')
-    //@Cacheable(cache = 'userCache', keyGenerator = 'userKeyGenerator')
+    @Cacheable(cache = 'userCache', keyGenerator = 'userKeyGenerator')
     def openProfile = {
         def dialog = g.render(template: 'dialogs/profile', model: [user: User.get(springSecurityService.principal.id)])
         render(status:200, contentType: 'application/json', text: [dialog:dialog] as JSON)
@@ -256,7 +256,7 @@ class UserController {
         }
 
         if (!params.text) {
-            render(template: 'dialogs/retrieve')
+            render view: '/user/retrieve'
             return
         }
 

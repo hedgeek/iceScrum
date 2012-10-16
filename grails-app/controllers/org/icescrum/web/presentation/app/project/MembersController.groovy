@@ -23,12 +23,12 @@
 
 package org.icescrum.web.presentation.app.project
 
+import grails.converters.JSON
+import grails.plugins.springsecurity.Secured
 import org.icescrum.core.domain.Product
 import org.icescrum.core.domain.Team
 import org.icescrum.core.domain.User
 import org.icescrum.core.utils.BundleUtils
-import grails.converters.JSON
-import grails.plugins.springsecurity.Secured
 
 @Secured('isAuthenticated() and (stakeHolder() or inProduct() or owner())')
 class MembersController {

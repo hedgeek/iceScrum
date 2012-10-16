@@ -24,15 +24,13 @@
 
 package org.icescrum.web.presentation.app.project
 
-import org.icescrum.core.domain.Product
-import org.icescrum.core.domain.Release
-import org.icescrum.core.domain.Sprint
-import org.icescrum.core.domain.PlanningPokerGame
-import org.icescrum.core.domain.Story
 import grails.converters.JSON
 import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
+
 import java.text.DecimalFormat
+
+import org.icescrum.core.domain.*
 
 @Secured('(isAuthenticated() and stakeHolder()) or inProduct()')
 class ReleasePlanController {
