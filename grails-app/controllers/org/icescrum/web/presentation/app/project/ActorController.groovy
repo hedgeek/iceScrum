@@ -41,7 +41,7 @@ class ActorController {
 
     @Cacheable(cache = 'searchActors', keyGenerator = 'actorsKeyGenerator')
     def search(long product, String term) {
-        def actors = Actor.findActorByProductAndTerm(product, '%' + term + '%').list()
+        def actors = Actor.findAllByProductAndTerm(product, '%' + term + '%').list()
         def result = []
         actors?.each {
             result << [label: it.name, value: it.name]
@@ -131,7 +131,7 @@ class ActorController {
     }
 
     def list(long product, String term, String windowType, String viewType) {
-        def actors = term ? Actor.findActorByProductAndTerm(product, '%' + term + '%').list() : Actor.findAllByBacklog(Product.load(product), [sort: 'useFrequency', order: 'asc'])
+        def actors = term ? Actor.findAllByProductAndTerm(product, '%' + term + '%').list() : Actor.findAllByBacklog(Product.load(product), [sort: 'useFrequency', order: 'asc'])
         withFormat{
             html {
                 def template = windowType == 'widget' ? 'widget/widgetView' : viewType ? 'window/' + viewType : 'window/postitsView'

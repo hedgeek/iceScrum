@@ -598,7 +598,7 @@ class StoryController {
             return
         }
         def currentProduct = Product.load(product)
-        def stories = term ? Story.findInStories(product, '%' + term + '%').list() : Story.findAllByBacklog(currentProduct, [sort: 'id', order: 'asc'])
+        def stories = term ? Story.findAllByProductAndTerm(product, '%' + term + '%').list() : Story.findAllByBacklog(currentProduct, [sort: 'id', order: 'asc'])
         withFormat {
             json { renderRESTJSON(text:stories) }
             xml  { renderRESTXML(text:stories) }

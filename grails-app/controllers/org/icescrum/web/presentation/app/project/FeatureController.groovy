@@ -137,7 +137,7 @@ class FeatureController {
     }
 
     def list(long product, String term, String windowType, String viewType) {
-        def features = (term && term != '') ? Feature.findInAll(product, '%' + term + '%').list() : Feature.findAllByBacklog(Product.load(product), [cache: true, sort: 'rank'])
+        def features = (term && term != '') ? Feature.findAllByProductAndTerm(product, '%' + term + '%').list() : Feature.findAllByBacklog(Product.load(product), [cache: true, sort: 'rank'])
         withFormat{
             html {
                 def template = windowType == 'widget' ? 'widget/widgetView' : viewType ? 'window/' + viewType : 'window/postitsView'
