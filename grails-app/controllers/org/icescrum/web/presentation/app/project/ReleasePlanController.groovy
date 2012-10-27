@@ -36,7 +36,6 @@ import org.icescrum.core.domain.*
 class ReleasePlanController {
     def storyService
     def springSecurityService
-    def sprintService
     def releaseService
     def featureService
 
@@ -83,18 +82,18 @@ class ReleasePlanController {
         render(template: 'window/toolbar', model: [release: release])
     }
 
-    def index = {
+    def index(long product, long id) {
         def release
-        if (!params.id) {
-            release = Release.findCurrentOrNextRelease(params.long('product')).list()[0]
+        if (!id) {
+            release = Release.findCurrentOrNextRelease(product).list()[0]
             if (release) {
-                params.id = release.id
+                id = release.id
             } else {
                 render(template: 'window/blank')
                 return
             }
         } else {
-            release = Release.getInProduct(params.long('product'),params.long('id')).list()
+            release = Release.getInProduct(product,id).list()
         }
         if (!release || !(release instanceof Release)) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.release.error.not.exist')]] as JSON)
@@ -119,80 +118,80 @@ class ReleasePlanController {
 
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def close = {
+    def close(long product, boolean confirm) {
         withSprint{Sprint sprint ->
             def unDoneStories = sprint.stories.findAll {it.state != Story.STATE_DONE}
-            if (unDoneStories?.size() > 0 && !params.confirm) {
+            if (unDoneStories?.size() > 0 && !confirm) {
                 def dialog = g.render(template: "dialogs/confirmCloseSprintWithUnDoneStories", model: [stories: unDoneStories, sprint: sprint])
                 render(status: 200, contentType: 'application/json', text: [dialog: dialog] as JSON)
                 return
             }
-            if (unDoneStories?.size() > 0 && params.confirm) {
+            if (unDoneStories?.size() > 0 && confirm) {
                 params.story.id.each {
                     if (it.value.toInteger() == 1) {
                         storyService.done(Story.get(it.key.toLong()))
                     }
                 }
             }
-            forward(action: 'close', controller: 'sprint', params: [product: params.product, id: sprint.id])
+            forward(action: 'close', controller: 'sprint', params: [product: product, id: sprint.id])
         }
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def activate = {
+    def activate(long product, boolean confirm) {
         withSprint{Sprint sprint ->
-            if (sprint.orderNumber == 1 && sprint.parentRelease.state == Release.STATE_WAIT && !params.confirm) {
+            if (sprint.orderNumber == 1 && sprint.parentRelease.state == Release.STATE_WAIT && !confirm) {
                 def dialog = g.render(template: "dialogs/confirmActivateSprintAndRelease", model: [sprint: sprint, release: sprint.parentRelease])
                 render(status: 200, contentType: 'application/json', text: [dialog: dialog] as JSON)
                 return
             }
 
-            if (params.confirm) {
+            if (confirm) {
                 def currentRelease = sprint.parentRelease.parentProduct.releases?.find {it.state == Release.STATE_INPROGRESS}
                 if (currentRelease)
                     releaseService.close(currentRelease)
                 releaseService.activate(sprint.parentRelease)
             }
-            forward(action: 'activate', controller: 'sprint', params: [product: params.product, id: sprint.id])
+            forward(action: 'activate', controller: 'sprint', params: [product: product, id: sprint.id])
         }
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def delete = {
+    def delete(long product, boolean confirm) {
         withSprint{Sprint sprint ->
-            if (sprint.orderNumber < sprint.parentRelease.sprints.size() && !params.confirm) {
+            if (sprint.orderNumber < sprint.parentRelease.sprints.size() && !confirm) {
                 def dialog = g.render(template: "dialogs/confirmDeleteSprint", model: [sprint: sprint, release: sprint.parentRelease])
                 render(status: 200, contentType: 'application/json', text: [dialog: dialog] as JSON)
                 return
             }
-            forward(action: 'delete', controller: 'sprint', params: [product: params.product, id: sprint.id])
+            forward(action: 'delete', controller: 'sprint', params: [product: product, id: sprint.id])
         }
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def autoPlan = {
-        if (!params.id) {
+    def autoPlan(long product, long id, double capacity) {
+        if (!id) {
             def msg = message(code: 'is.release.error.not.exist')
             render(status: 400, contentType: 'application/json', text: [notice: [text: msg]] as JSON)
             return
         }
-        if (!params.capacity) {
+        if (!capacity) {
             def dialog = g.render(template: "dialogs/promptCapacityAutoPlan")
             render(status: 200, contentType: 'application/json', text: [dialog: dialog] as JSON)
             return
         }
-        forward(action: 'autoPlan', controller: 'release', params: [product: params.product, id: params.id])
+        forward(action: 'autoPlan', controller: 'release', params: [product: product, id: id])
     }
 
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def add = {
-        if (!params.id) {
+    def add(long product, long id) {
+        if (!id) {
             def msg = message(code: 'is.release.error.not.exist')
             render(status: 400, contentType: 'application/json', text: [notice: [text: msg]] as JSON)
             return
         }
-        def release = Release.getInProduct(params.long('product'),params.long('id')).list()
+        def release = Release.getInProduct(product,id).list()
 
         if (!release) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.release.error.not.exist')]] as JSON)
@@ -210,13 +209,13 @@ class ReleasePlanController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def edit = {
-        if (!params.subid) {
+    def edit(long product, long subid) {
+        if (!subid) {
             def msg = message(code: 'is.sprint.error.not.exist')
             render(status: 400, contentType: 'application/json', text: [notice: [text: msg]] as JSON)
             return
         }
-        def sprint = Sprint.getInProduct(params.long('product'),params.long('subid')).list()
+        def sprint = Sprint.getInProduct(product,subid).list()
 
         if (!sprint) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.sprint.error.not.exist')]] as JSON)
@@ -236,18 +235,18 @@ class ReleasePlanController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def editStory = {
+    def editStory() {
         forward(action: 'edit', controller: 'story', params: [referrer: controllerName])
     }
 
-    def vision = {
+    def vision() {
         withRelease{ Release release ->
             render(template: 'window/visionView', model: [release: release])
         }
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def updateVision = {
+    def updateVision() {
         withRelease{ Release release ->
             release.vision = params.vision
             releaseService.updateVision(release)
@@ -256,7 +255,7 @@ class ReleasePlanController {
     }
 
     @Cacheable(cache = "releaseCache", keyGenerator = 'releaseKeyGenerator')
-    def releaseBurndownChart = {
+    def releaseBurndownChart() {
         withRelease{ Release release ->
             def values = releaseService.releaseBurndownValues(release)
             if (values.size() > 0) {
@@ -272,7 +271,7 @@ class ReleasePlanController {
     }
 
     @Cacheable(cache = "releaseCache", keyGenerator = 'releaseKeyGenerator')
-    def releaseParkingLotChart = {
+    def releaseParkingLotChart() {
         withRelease{ Release release ->
             def values = featureService.releaseParkingLotValues(release)
 

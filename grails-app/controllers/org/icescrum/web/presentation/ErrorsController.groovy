@@ -28,7 +28,7 @@ class ErrorsController {
 
     def springSecurityService
 
-    def error403 = {
+    def error403() {
         if (!springSecurityService.isLoggedIn())
             redirect(action: 'error401')
         else if (springSecurityService.isAjax(request))
@@ -36,23 +36,23 @@ class ErrorsController {
         else
             redirect(controller: 'login', action: 'index')
     }
-    def error401 = {
+    def error401(String ref) {
         if (springSecurityService.isAjax(request))
             render(status: 401, text: '')
         else {
-            render(template: 'error401', status: 401, model: [ref: params.ref])
+            render(template: 'error401', status: 401, model: [ref:ref])
         }
     }
 
-    def fakeError = {
+    def fakeError() {
 
     }
 
-    def handleDatabase = {
+    def handleDatabase() {
         render(status: 500, contentType: 'application/json', text: [error: message(code: 'is.error.database')] as JSON)
     }
 
-    def handleMemory = {
+    def handleMemory() {
         render(status: 500, contentType: 'application/json', text: [error: message(code: 'is.error.permgen')] as JSON)
     }
 }

@@ -39,10 +39,10 @@ class MembersController {
     def securityService
     def springcacheService
 
-    def edit = {
-        def product = Product.get(params.product)
-        def members = productService.getAllMembersProduct(product)
-        def ownerSelect = product.owner
+    def edit(long product) {
+        def p = Product.get(product)
+        def members = productService.getAllMembersProduct(p)
+        def ownerSelect = p.owner
 
         def possibleOwners = members.clone()
 
@@ -55,8 +55,8 @@ class MembersController {
             possibleOwners.add(ownerSelect)
         }
 
-        def listRoles = product.preferences.hidden ? 'roles' : 'rolesPublic'
-        def dialog = g.render(template: "dialogs/members", model: [product: product,
+        def listRoles = p.preferences.hidden ? 'roles' : 'rolesPublic'
+        def dialog = g.render(template: "dialogs/members", model: [product: p,
                                                     members: members,
                                                     ownerSelect:ownerSelect,
                                                     possibleOwners:possibleOwners,
@@ -67,10 +67,10 @@ class MembersController {
     }
 
     @Secured(['(owner() or scrumMaster()) and !archivedProduct()', 'RUN_AS_PERMISSIONS_MANAGER'])
-    def update = {
-        def product = Product.get(params.product)
-        def team = Team.get(product.firstTeam.id)
-        def currentMembers = productService.getAllMembersProduct(product)
+    def update(long product, long creator) {
+        def p = Product.get(product)
+        def team = Team.get(p.firstTeam.id)
+        def currentMembers = productService.getAllMembersProduct(p)
         try{
             def idmembers = []
             params.members?.each{ k,v ->
@@ -78,10 +78,10 @@ class MembersController {
                     def found = currentMembers.find{ it.id == u.id}
                     if (found){
                         if (found.role.toString() != params.role."${k}"){
-                            productService.changeRole(product,team,u,Integer.parseInt(params.role."${k}"))
+                            productService.changeRole(p,team,u,Integer.parseInt(params.role."${k}"))
                         }
                     }else{
-                        productService.addRole(product,team,u,Integer.parseInt(params.role."${k}"))
+                        productService.addRole(p,team,u,Integer.parseInt(params.role."${k}"))
                     }
                 idmembers << u.id
             }
@@ -91,11 +91,11 @@ class MembersController {
             difference?.each{
                 def found = currentMembers.find{ it2 -> it == it2.id}
                 def u = User.get(found.id)
-                productService.removeAllRoles(product,team,u)
+                productService.removeAllRoles(p,team,u)
             }
 
-            if (params.creator && params.creator?.toLong() != product.owner.id){
-                securityService.changeOwner(User.get(params.creator.toLong()),product)
+            if (creator != p.owner.id){
+                securityService.changeOwner(User.get(creator),p)
             }
             render (status:200)
         }catch(RuntimeException re){
@@ -105,15 +105,15 @@ class MembersController {
     }
 
     @Secured(['inProduct() or stakeHolder()', 'RUN_AS_PERMISSIONS_MANAGER'])
-     def leaveTeam = {
-        def product = Product.get(params.product)
+     def leaveTeam(long product) {
+        def p = Product.get(product)
         def user = springSecurityService.currentUser
-        def team = Team.get(product.firstTeam.id)
-        def currentMembers = productService.getAllMembersProduct(product)
+        def team = Team.get(p.firstTeam.id)
+        def currentMembers = productService.getAllMembersProduct(p)
         try {
             def found = currentMembers.find{ it.id == user.id}
             def u = User.get(found.id)
-            productService.removeAllRoles(product,team,u, false)
+            productService.removeAllRoles(p,team,u, false)
             render(status: 200, contentType: 'application/json', text: [url: createLink(uri: '/')] as JSON)
         } catch (e) {
             if (log.debugEnabled) e.printStackTrace()

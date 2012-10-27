@@ -37,7 +37,7 @@ class TaskController {
     def springSecurityService
     def taskService
 
-    def toolbar = {
+    def toolbar() {
         withTask { Task task ->
             def user = null
             if (springSecurityService.isLoggedIn())
@@ -50,7 +50,7 @@ class TaskController {
         }
     }
 
-    def index = {
+    def index() {
         def id = params.uid?.toInteger() ?: params.id?.toLong() ?: null
         withTask(id, params.uid?true:false) { Task task ->
             def product = task.parentProduct
@@ -78,7 +78,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def save = {
+    def save() {
         def type = params.remove('parentStory.id') ?: params.task.remove('parentStory.id')
         if (!type){
             type = params.remove('task.type') ?: params.task.remove('type')
@@ -134,7 +134,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def update = {
+    def update() {
         withTask{Task task ->
 
             // If the version is different, the task has been modified since the last loading
@@ -174,7 +174,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def take = {
+    def take() {
         withTask{Task task ->
             User user = (User) springSecurityService.currentUser
             taskService.assign(task, user)
@@ -187,7 +187,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def unassign = {
+    def unassign() {
         withTask{Task task ->
             User user = (User) springSecurityService.currentUser
             taskService.unassign(task, user)
@@ -200,7 +200,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def delete = {
+    def delete() {
         withTasks{List<Task> tasks ->
             User user = (User) springSecurityService.currentUser
             def idj = []
@@ -217,7 +217,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def copy = {
+    def copy() {
         withTask{Task task ->
             User user = (User) springSecurityService.currentUser
             def copiedTask = taskService.copy(task, user)
@@ -230,7 +230,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def estimate = {
+    def estimate() {
         withTask{Task task ->
             User user = (User) springSecurityService.currentUser
             if (params.task?.estimation){
@@ -248,7 +248,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def block = {
+    def block() {
         withTask{Task task ->
             if(task.backlog.state == Sprint.STATE_WAIT){
                 throw new IllegalStateException('is.sprint.error.state.not.inProgress')
@@ -265,7 +265,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def unblock = {
+    def unblock() {
         withTask{Task task ->
             if(task.backlog.state == Sprint.STATE_WAIT){
                 throw new IllegalStateException('is.sprint.error.state.not.inProgress')
@@ -278,7 +278,7 @@ class TaskController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def rank = {
+    def rank() {
         def position = params.int('task.rank')
         if (position == 0) {
             render(status: 200)
@@ -295,13 +295,13 @@ class TaskController {
         }
     }
 
-    def download = {
+    def download() {
         forward(action: 'download', controller: 'attachmentable', id: params.id)
         return
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def state = {
+    def state() {
         // params.id represent the targeted state (STATE_WAIT, STATE_INPROGRESS, STATE_DONE)
         Integer state = params.task?.state instanceof String && params.task.state.isNumber() ? params.task.state.toInteger() : params.task?.state instanceof Integer ? params.task.state : null
         if (!(state in [Task.STATE_WAIT,Task.STATE_BUSY,Task.STATE_DONE])){
@@ -325,12 +325,12 @@ class TaskController {
         }
     }
 
-    def show = {
+    def show() {
         redirect(action:'index', controller: controllerName, params:params)
     }
 
     @Cacheable(cache = 'taskCache', keyGenerator='tasksKeyGenerator')
-    def list = {
+    def list() {
 
         if (request?.format == 'html') {
             render(status: 404)
@@ -376,7 +376,7 @@ class TaskController {
     }
 
     @Cacheable(cache = 'taskCache', keyGenerator = 'tasksKeyGenerator')
-    def mylyn = {
+    def mylyn() {
 
         def sprint
         if (params.id)
@@ -479,9 +479,5 @@ class TaskController {
             task.lastUpdated = new Date()
             broadcast(function: 'update', message: task)
         }
-    }
-
-    def tags = {
-        render Tag.findAllByNameIlike("${params.term}%")*.name as JSON
     }
 }

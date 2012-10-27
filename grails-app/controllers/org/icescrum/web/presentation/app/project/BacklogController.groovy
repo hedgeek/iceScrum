@@ -34,18 +34,15 @@ import org.icescrum.core.utils.BundleUtils
 
 @Secured('stakeHolder() or inProduct()')
 class BacklogController {
-    def storyService
+
     def springSecurityService
 
-    final featureTerm = /feature:(\w)/
-    final typeTerm = /type:(\w)/
+    def list(long product, String term, String windowType, String viewType) {
+        def currentProduct = Product.get(product)
 
-    def list = {
-        def currentProduct = Product.get(params.product)
-
-        def stories = params.term ? Story.findInStoriesAcceptedEstimated(params.long('product'), '%' + params.term + '%').list() : Story.findAllByBacklogAndStateBetween(currentProduct, Story.STATE_ACCEPTED, Story.STATE_ESTIMATED, [cache: true, sort: 'rank'])
-        stories = params.windowType == 'widget' ? stories.findAll {it.state == Story.STATE_ESTIMATED} : stories
-        def template = params.windowType == 'widget' ? 'widget/widgetView' : params.viewType ? 'window/' + params.viewType : 'window/postitsView'
+        def stories = term ? Story.findInStoriesAcceptedEstimated(product, '%' + term + '%').list() : Story.findAllByBacklogAndStateBetween(currentProduct, Story.STATE_ACCEPTED, Story.STATE_ESTIMATED, [cache: true, sort: 'rank'])
+        stories = windowType == 'widget' ? stories.findAll {it.state == Story.STATE_ESTIMATED} : stories
+        def template = windowType == 'widget' ? 'widget/widgetView' : viewType ? 'window/' + viewType : 'window/postitsView'
 
         def typeSelect = BundleUtils.storyTypes.collect {k, v -> "'$k':'${message(code: v)}'" }.join(',')
         def rankSelect = ''
@@ -74,15 +71,15 @@ class BacklogController {
                 suiteSelect: suiteSelect,
                 rankSelect: rankSelect],
                 user: springSecurityService.currentUser,
-                params: [product: params.product])
+                params: [product: product])
     }
 
 
-    def editStory = {
-        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, id: params.id, product: params.product])
+    def editStory(long product, long id) {
+        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, id: id, product: product])
     }
 
-    def print = {
+    def print(long product, String format, boolean get, boolean status) {
         def currentProduct = Product.get(params.product)
         def data = []
         def stories = Story.findAllByBacklogAndStateBetween(currentProduct, Story.STATE_ACCEPTED, Story.STATE_ESTIMATED, [cache: true, sort: 'rank'])

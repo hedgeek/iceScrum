@@ -26,7 +26,6 @@ package org.icescrum.web.presentation.app.project
 import grails.converters.JSON
 import grails.plugin.springcache.annotations.Cacheable
 import grails.plugins.springsecurity.Secured
-import org.grails.taggable.Tag
 import org.icescrum.core.domain.Feature
 import org.icescrum.core.domain.PlanningPokerGame
 import org.icescrum.core.domain.Product
@@ -44,12 +43,12 @@ class FeatureController {
     def springSecurityService
 
     @Secured('productOwner() and !archivedProduct()')
-    def save = {
+    def save(long product) {
         def feature = new Feature()
         bindData(feature, this.params, [include:['name','description','notes','color','type','value']], "feature")
 
         try {
-            featureService.save(feature, Product.get(params.product))
+            featureService.save(feature, Product.get(product))
             feature.tags = params.feature.tags instanceof String ? params.feature.tags.split(',') : (params.feature.tags instanceof String[] || params.feature.tags instanceof List) ? params.feature.tags : null
             this.manageAttachments(feature)
             entry.hook(id:"${controllerName}-${actionName}", model:[feature:feature])
@@ -66,7 +65,7 @@ class FeatureController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def update = {
+    def update(long product, boolean table, String name) {
         withFeature{ Feature feature ->
              // If the version is different, the feature has been modified since the last loading
             if (params.feature.version && params.long('feature.version') != feature.version) {
@@ -93,15 +92,15 @@ class FeatureController {
                 this.manageAttachments(feature)
                 featureService.update(feature)
 
-                if (params.table && params.boolean('table')) {
+                if (table) {
                     def returnValue
-                    if (params.name == 'type')
+                    if (name == 'type')
                         returnValue = message(code: BundleUtils.featureTypes[feature.type])
-                    else if (params.name == 'description') {
+                    else if (name == 'description') {
                         returnValue = feature.description?.encodeAsHTML()?.encodeAsNL2BR()
                     }
                     else
-                        returnValue = feature[params.name].encodeAsHTML()
+                        returnValue = feature[name].encodeAsHTML()
 
                     def version = feature.isDirty() ? feature.version + 1 : feature.version
                     render(status: 200, text: [version: version, value: returnValue ?: '', object: feature] as JSON)
@@ -122,7 +121,7 @@ class FeatureController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def delete = {
+    def delete() {
         withFeatures{ List<Feature> features ->
             features.each { feature ->
                 featureService.delete(feature)
@@ -137,13 +136,13 @@ class FeatureController {
         }
     }
 
-    def list = {
-        def features = (params.term && params.term != '') ? Feature.findInAll(params.long('product'), '%' + params.term + '%').list() : Feature.findAllByBacklog(Product.load(params.product), [cache: true, sort: 'rank'])
+    def list(long product, String term, String windowType, String viewType) {
+        def features = (term && term != '') ? Feature.findInAll(product, '%' + term + '%').list() : Feature.findAllByBacklog(Product.load(product), [cache: true, sort: 'rank'])
         withFormat{
             html {
-                def template = params.windowType == 'widget' ? 'widget/widgetView' : params.viewType ? 'window/' + params.viewType : 'window/postitsView'
+                def template = windowType == 'widget' ? 'widget/widgetView' : viewType ? 'window/' + viewType : 'window/postitsView'
 
-                def currentProduct = Product.get(params.product)
+                def currentProduct = Product.get(product)
                 def maxRank = Feature.countByBacklog(currentProduct)
                 //Pour la vue tableau
                 def rankSelect = ''
@@ -156,7 +155,7 @@ class FeatureController {
                 currentSuite = currentSuite.eachWithIndex { t, i ->
                     suiteSelect += "'${t}':'${t}'" + (i < currentSuite.size() - 1 ? ',' : '')
                 }
-                render(template: template, model: [features: features, typeSelect: typeSelect, rankSelect: rankSelect, suiteSelect: suiteSelect], params: [product: params.product])
+                render(template: template, model: [features: features, typeSelect: typeSelect, rankSelect: rankSelect, suiteSelect: suiteSelect], params: [product: product])
             }
             json { renderRESTJSON(text:features) }
             xml  { renderRESTXML(text:features) }
@@ -164,7 +163,7 @@ class FeatureController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def rank = {
+    def rank() {
         withFeature{ Feature feature ->
             Integer rank = params.feature.rank instanceof Number ? params.feature.rank : params.feature.rank.isNumber() ? params.feature.rank.toInteger() : null
             if (feature == null || rank == null) {
@@ -183,7 +182,7 @@ class FeatureController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def add = {
+    def add() {
         def valuesList = PlanningPokerGame.getInteger(PlanningPokerGame.INTEGER_SUITE)
         render(template: 'window/manage', model: [valuesList: valuesList,
                 colorsLabels: BundleUtils.colorsSelect.values().collect { message(code: it) },
@@ -194,7 +193,7 @@ class FeatureController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def edit = {
+    def edit() {
         withFeature{ Feature feature ->
             Product product = (Product) feature.backlog
             def valuesList = PlanningPokerGame.getInteger(PlanningPokerGame.INTEGER_SUITE)
@@ -217,7 +216,7 @@ class FeatureController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def copyFeatureToBacklog = {
+    def copyFeatureToBacklog() {
         withFeature{ Feature feature ->
             def story = featureService.copyToBacklog(feature)
             withFormat {
@@ -229,8 +228,8 @@ class FeatureController {
     }
 
     @Cacheable(cache = "projectCache", keyGenerator= 'featuresKeyGenerator')
-    def productParkingLotChart = {
-        def currentProduct = Product.get(params.product)
+    def productParkingLotChart(long product) {
+        def currentProduct = Product.get(product)
         def values = featureService.productParkingLotValues(currentProduct)
         def indexF = 1
         def valueToDisplay = []
@@ -243,7 +242,7 @@ class FeatureController {
         }
         if (valueToDisplay.size() > 0)
             render(template: 'charts/productParkinglot', model: [
-                    withButtonBar: (params.withButtonBar != null) ? params.boolean('withButtonBar') : true,
+                    withButtonBar: params.withButtonBar != null ? params.withButtonBar : true,
                     values: valueToDisplay as JSON,
                     featuresNames: values.label as JSON])
         else {
@@ -251,14 +250,14 @@ class FeatureController {
         }
     }
 
-    def print = {
-        def currentProduct = Product.get(params.product)
+    def print(long product, String format, boolean get, boolean status) {
+        def currentProduct = Product.get(product)
         def values = featureService.productParkingLotValues(currentProduct)
         def data = []
         if (!values) {
             returnError(text:message(code: 'is.report.error.no.data'))
             return
-        } else if (params.get) {
+        } else if (get) {
             currentProduct.features.eachWithIndex { feature, index ->
                 data << [
                         name: feature.name,
@@ -273,8 +272,8 @@ class FeatureController {
                         parkingLotValue: values[index].value
                 ]
             }
-            outputJasperReport('features', params.format, [[product: currentProduct.name, features: data ?: null]], currentProduct.name)
-        } else if (params.status) {
+            outputJasperReport('features', format, [[product: currentProduct.name, features: data ?: null]], currentProduct.name)
+        } else if (status) {
             render(status: 200, contentType: 'application/json', text: session.progress as JSON)
         } else {
             session.progress = new ProgressSupport()
@@ -284,7 +283,7 @@ class FeatureController {
     }
 
     @Cacheable(cache = 'featureCache', keyGenerator='featureKeyGenerator')
-    def index = {
+    def index() {
         if (request?.format == 'html'){
             render(status:404)
             return
@@ -298,7 +297,7 @@ class FeatureController {
         }
     }
 
-    def show = {
+    def show() {
         redirect(action:'index', controller: controllerName, params:params)
     }
 
@@ -335,12 +334,8 @@ class FeatureController {
         }
     }
 
-    def download = {
+    def download(long id) {
         forward(action: 'download', controller: 'attachmentable', id: params.id)
         return
-    }
-
-    def tags = {
-        render Tag.findAllByNameIlike("${params.term}%")*.name as JSON
     }
 }

@@ -61,9 +61,9 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'releaseCache', keyGenerator = 'releasesKeyGenerator')
-    def index = {
+    def index(long product) {
 
-        def currentProduct = Product.get(params.product)
+        def currentProduct = Product.get(product)
         if (!currentProduct.releases) {
             render(template: 'window/blank')
             return
@@ -73,8 +73,8 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'releaseCache', keyGenerator = 'releasesRoleKeyGenerator')
-    def timeLineList = {
-        def currentProduct = Product.get(params.product)
+    def timeLineList(long product) {
+        def currentProduct = Product.get(product)
         def list = []
 
         def date = new Date(currentProduct.startDate.getTime() - 1000)
@@ -156,8 +156,8 @@ class TimelineController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def add = {
-        def currentProduct = Product.get(params.product)
+    def add(long product) {
+        def currentProduct = Product.get(product)
         def previousRelease = currentProduct.releases.max {s1, s2 -> s1.orderNumber <=> s2.orderNumber}
         def release = new Release()
 
@@ -180,7 +180,7 @@ class TimelineController {
 
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def edit = {
+    def edit() {
         withRelease{ Release release ->
             def product = release.parentProduct
             def previousRelease = product.releases.find {it.orderNumber == release.orderNumber - 1}
@@ -196,8 +196,8 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator = 'releasesKeyGenerator')
-    def productCumulativeFlowChart = {
-        def currentProduct = Product.get(params.product)
+    def productCumulativeFlowChart(long product) {
+        def currentProduct = Product.get(product)
         def values = productService.cumulativeFlowValues(currentProduct)
         if (values.size() > 0) {
             render(template: '../project/charts/productCumulativeFlowChart', model: [
@@ -215,8 +215,8 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator = 'releasesKeyGenerator')
-    def productVelocityCapacityChart = {
-        def currentProduct = Product.get(params.product)
+    def productVelocityCapacityChart(long product) {
+        def currentProduct = Product.get(product)
         def values = productService.productVelocityCapacityValues(currentProduct)
         if (values.size() > 0) {
             render(template: '../project/charts/productVelocityCapacityChart', model: [
@@ -230,8 +230,8 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator = 'releasesKeyGenerator')
-    def productBurnupChart = {
-        def currentProduct = Product.get(params.product)
+    def productBurnupChart(long product) {
+        def currentProduct = Product.get(product)
         def values = productService.productBurnupValues(currentProduct)
         if (values.size() > 0) {
             render(template: '../project/charts/productBurnupChart', model: [
@@ -245,8 +245,8 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator = 'releasesKeyGenerator')
-    def productBurndownChart = {
-        def currentProduct = Product.get(params.product)
+    def productBurndownChart(long product) {
+        def currentProduct = Product.get(product)
         def values = productService.productBurndownValues(currentProduct)
         if (values.size() > 0) {
             render(template: '../project/charts/productBurndownChart', model: [
@@ -261,8 +261,8 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator = 'releasesKeyGenerator')
-    def productVelocityChart = {
-        def currentProduct = Product.get(params.product)
+    def productVelocityChart(long product) {
+        def currentProduct = Product.get(product)
         def values = productService.productVelocityValues(currentProduct)
         if (values.size() > 0) {
             render(template: '../project/charts/productVelocityChart', model: [
@@ -277,8 +277,8 @@ class TimelineController {
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator='featuresKeyGenerator')
-    def productParkingLotChart = {
-        def currentProduct = Product.get(params.product)
+    def productParkingLotChart(long product) {
+        def currentProduct = Product.get(product)
         def values = featureService.productParkingLotValues(currentProduct)
         def indexF = 1
         def valueToDisplay = []
@@ -302,13 +302,13 @@ class TimelineController {
     /**
      * Export the timeline elements in multiple format (PDF, DOCX, RTF, ODT)
      */
-    def print = {
-        def currentProduct = Product.get(params.product)
+    def print(long product, String format, boolean get, boolean status, String locationHash) {
+        def currentProduct = Product.get(product)
         def data
         def chart = null
 
-        if (params.locationHash) {
-            chart = processLocationHash(params.locationHash.decodeURL()).action
+        if (locationHash) {
+            chart = processLocationHash(locationHash.decodeURL()).action
         }
 
         switch (chart) {
@@ -349,9 +349,9 @@ class TimelineController {
 
         if (data.size() <= 0) {
             returnError(text:message(code: 'is.report.error.no.data'))
-        } else if (params.get) {
-            outputJasperReport(chart ?: 'timeline', params.format, data, currentProduct.name, ['labels.projectName': currentProduct.name])
-        } else if (params.status) {
+        } else if (get) {
+            outputJasperReport(chart ?: 'timeline', format, data, currentProduct.name, ['labels.projectName': currentProduct.name])
+        } else if (status) {
             render(status: 200, contentType: 'application/json', text: session.progress as JSON)
         } else {
             session.progress = new ProgressSupport()

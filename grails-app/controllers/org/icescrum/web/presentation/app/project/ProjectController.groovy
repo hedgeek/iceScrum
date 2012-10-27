@@ -59,12 +59,12 @@ class ProjectController {
     def securityService
     def attachmentableService
 
-    def index = {
+    def index() {
         chain(controller: 'scrumOS', action: 'index', params: params)
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator = 'localeKeyGenerator')
-    def feed = {
+    def feed() {
         cache validFor: 300
         withProduct{ Product product ->
             def activities = Story.recentActivity(product)
@@ -90,7 +90,7 @@ class ProjectController {
     }
 
     @Secured('owner() or scrumMaster()')
-    def edit = {
+    def edit() {
         withProduct{ Product product ->
             def privateOption = !ApplicationSupport.booleanValue(grailsApplication.config.icescrum.project.private.enable)
             if (SpringSecurityUtils.ifAnyGranted(Authority.ROLE_ADMIN)) {
@@ -102,7 +102,7 @@ class ProjectController {
     }
 
     @Secured('(owner() or scrumMaster()) and !archivedProduct()')
-    def editPractices = {
+    def editPractices() {
         withProduct{ Product product ->
             def estimationSuitSelect = [(PlanningPokerGame.FIBO_SUITE): message(code: "is.estimationSuite.fibonacci"), (PlanningPokerGame.INTEGER_SUITE): message(code: "is.estimationSuite.integer")]
             def dialog = g.render(template: "dialogs/editPractices", model: [product: product, estimationSuitSelect: estimationSuitSelect])
@@ -111,7 +111,7 @@ class ProjectController {
     }
 
     @Secured('(owner() or scrumMaster()) and !archivedProduct()')
-    def update = {
+    def update() {
         withProduct('productd.id'){ Product product ->
             def msg
             if (params.long('productd.version') != product.version) {
@@ -138,7 +138,7 @@ class ProjectController {
     }
 
     @Secured('isAuthenticated()')
-    def openWizard = {
+    def openWizard() {
         if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.project.creation.enable)) {
             if (!SpringSecurityUtils.ifAnyGranted(Authority.ROLE_ADMIN)) {
                 render(status: 403)
@@ -170,7 +170,7 @@ class ProjectController {
     }
 
     @Secured('isAuthenticated()')
-    def save = {
+    def save() {
         if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.project.creation.enable)) {
             if (!SpringSecurityUtils.ifAnyGranted(Authority.ROLE_ADMIN)) {
                 render(status: 403)
@@ -266,7 +266,7 @@ class ProjectController {
         }
     }
 
-    def dashboard = {
+    def dashboard() {
         withProduct{ Product product ->
             def sprint = Sprint.findCurrentOrLastSprint(product.id).list()[0]
             def release = Release.findCurrentOrNextRelease(product.id).list()[0]
@@ -285,7 +285,7 @@ class ProjectController {
     }
 
     @Cacheable(cache = "projectCache", keyGenerator= 'releasesKeyGenerator')
-    def productCumulativeFlowChart = {
+    def productCumulativeFlowChart() {
         withProduct{ Product product ->
             def values = productService.cumulativeFlowValues(product)
             if (values.size() > 0) {
@@ -306,7 +306,7 @@ class ProjectController {
     }
 
     @Cacheable(cache = "projectCache", keyGenerator= 'releasesKeyGenerator')
-    def productVelocityCapacityChart = {
+    def productVelocityCapacityChart() {
         withProduct{ Product product ->
             def values = productService.productVelocityCapacityValues(product)
             if (values.size() > 0) {
@@ -323,7 +323,7 @@ class ProjectController {
     }
 
     @Cacheable(cache = "projectCache", keyGenerator= 'releasesKeyGenerator')
-    def productBurnupChart = {
+    def productBurnupChart() {
         withProduct{ Product product ->
             def values = productService.productBurnupValues(product)
             if (values.size() > 0) {
@@ -340,7 +340,7 @@ class ProjectController {
     }
 
     @Cacheable(cache = "projectCache", keyGenerator= 'releasesKeyGenerator')
-    def productBurndownChart = {
+    def productBurndownChart() {
         withProduct{ Product product ->
             def values = productService.productBurndownValues(product)
             if (values.size() > 0) {
@@ -358,7 +358,7 @@ class ProjectController {
     }
 
     @Cacheable(cache = "projectCache", keyGenerator= 'releasesKeyGenerator')
-    def productVelocityChart = {
+    def productVelocityChart() {
         withProduct{ Product product ->
             def values = productService.productVelocityValues(product)
             if (values.size() > 0) {
@@ -376,7 +376,7 @@ class ProjectController {
     }
 
     @Cacheable(cache = "projectCache", keyGenerator= 'featuresKeyGenerator')
-    def productParkingLotChart = {
+    def productParkingLotChart() {
         withProduct{ Product product ->
             def values = featureService.productParkingLotValues(product)
             def indexF = 1
@@ -402,7 +402,7 @@ class ProjectController {
     }
 
     @Secured('productOwner() or scrumMaster()')
-    def export = {
+    def export(boolean status, boolean get, boolean zip) {
         withProduct{ Product product ->
             if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.project.export.enable)) {
                 if (!SpringSecurityUtils.ifAnyGranted(Authority.ROLE_ADMIN)) {
@@ -413,10 +413,10 @@ class ProjectController {
 
             withFormat {
                 html {
-                    if (params.status) {
+                    if (status) {
                         render(status: 200, contentType: 'application/json', text: session.progress as JSON)
                     }
-                    else if (params.get) {
+                    else if (get) {
                         session.progress.updateProgress(0, message(code: 'is.export.start'))
                         exportProduct(product, true)
                         session.progress?.completeProgress(message(code: 'is.export.complete'))
@@ -427,7 +427,7 @@ class ProjectController {
                     }
                 }
                 xml {
-                    if (params.zip){
+                    if (zip){
                         exportProduct(product, false)
                     }else{
                         render(contentType: 'text/xml', template: '/project/xml', model: [object: product, deep: true, root: true], encoding: 'UTF-8')
@@ -438,7 +438,7 @@ class ProjectController {
     }
 
     @Secured('isAuthenticated()')
-    def importProject = {
+    def importProject(boolean cancel, String file, boolean status) {
         if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.project.import.enable)) {
             if (!SpringSecurityUtils.ifAnyGranted(Authority.ROLE_ADMIN)) {
                 render(status: 403)
@@ -447,15 +447,15 @@ class ProjectController {
         }
 
         def user = User.load(springSecurityService.principal.id)
-        if (params.cancel) {
+        if (cancel) {
             session['import'] = null
             session.progress = null
             render(status: 200)
             return
         }
-        else if (params.file) {
+        else if (file) {
             File uploadedProject = null
-            "${params.file}".split(":")?.with {
+            "${file}".split(":")?.with {
                 if (session.uploadedFiles[it[0]])
                     uploadedProject = new File((String) session.uploadedFiles[it[0]])
             }
@@ -480,7 +480,7 @@ class ProjectController {
                 }
             }
         }
-        else if (params.status) {
+        else if (status) {
             if (session.progress)
                 render(status: 200, contentType: 'application/json', text: session.progress as JSON)
             else
@@ -517,7 +517,7 @@ class ProjectController {
     }
 
     @Secured('isAuthenticated()')
-    def saveImport = {
+    def saveImport() {
         if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.project.import.enable)) {
             if (!SpringSecurityUtils.ifAnyGranted(Authority.ROLE_ADMIN)) {
                 render(status: 403)
@@ -663,13 +663,13 @@ class ProjectController {
     /**
      * Export the project elements in multiple format (PDF, DOCX, RTF, ODT)
      */
-    def print = {
+    def print(String locationHash, boolean get, boolean status, String format) {
         withProduct{ Product product ->
             def data
             def chart = null
 
-            if (params.locationHash) {
-                chart = processLocationHash(params.locationHash.decodeURL()).action
+            if (locationHash) {
+                chart = processLocationHash(locationHash.decodeURL()).action
             }
 
             switch (chart) {
@@ -710,9 +710,9 @@ class ProjectController {
 
             if (data.size() <= 0) {
                 returnError(text:message(code: 'is.report.error.no.data'))
-            } else if (params.get) {
-                outputJasperReport(chart ?: 'timeline', params.format, data, product.name, ['labels.projectName': product.name])
-            } else if (params.status) {
+            } else if (get) {
+                outputJasperReport(chart ?: 'timeline', format, data, product.name, ['labels.projectName': product.name])
+            } else if (status) {
                 render(status: 200, contentType: 'application/json', text: session.progress as JSON)
             } else {
                 session.progress = new ProgressSupport()
@@ -723,7 +723,7 @@ class ProjectController {
     }
 
     @Secured('owner()')
-    def delete = {
+    def delete() {
         withProduct{ Product product ->
             def id = product.id
             try {
@@ -737,7 +737,7 @@ class ProjectController {
     }
 
     @Secured('owner() or scrumMaster()')
-    def archive = {
+    def archive() {
         withProduct{ Product product ->
             try {
                 productService.archive(product)
@@ -750,7 +750,7 @@ class ProjectController {
     }
 
     @Secured("hasRole('ROLE_ADMIN')")
-    def unArchive = {
+    def unArchive() {
         withProduct{ Product product ->
             try {
                 productService.unArchive(product)
@@ -777,20 +777,20 @@ class ProjectController {
 
     @Secured('permitAll')
     @Cacheable(cache = 'applicationCache', keyGenerator = 'localeKeyGenerator')
-    def browse = {
+    def browse() {
         def dialog = g.render(template: 'dialogs/browse')
         render(status:200, contentType: 'application/json', text: [dialog:dialog] as JSON)
     }
 
     @Secured('permitAll')
-    def browseList = {
+    def browseList(String term, int offset) {
 
-        def term = '%'+params.term+'%' ?: '';
-        def options = [offset:params.int('offset') ?: 0, max: 9, sort: "name", order: "asc", cache:true]
+        termSearch = '%'+term+'%' ?: '';
+        def options = [offset: offset ?: 0, max: 9, sort: "name", order: "asc", cache:true]
         def currentUser = springSecurityService.currentUser
 
-        def products = securityService.admin(springSecurityService.authentication) ? Product.findAllByNameIlike(term, options) : Product.searchPublicAndMyProducts(currentUser,term,options)
-        def total =  securityService.admin(springSecurityService.authentication) ? Product.countByNameIlike(term, [cache:true]) : Product.countPublicAndMyProducts(currentUser,term,[cache:true])[0]
+        def products = securityService.admin(springSecurityService.authentication) ? Product.findAllByNameIlike(termSearch, options) : Product.searchPublicAndMyProducts(currentUser,term,options)
+        def total =  securityService.admin(springSecurityService.authentication) ? Product.countByNameIlike(termSearch, [cache:true]) : Product.countPublicAndMyProducts(currentUser,term,[cache:true])[0]
 
         def results = []
         products?.each {
@@ -799,12 +799,12 @@ class ProjectController {
             ]
         }
 
-        render template: "/components/browserColumn", plugin: 'icescrum-core', model: [name: 'project-browse', max: 9, total: total, term: params.term, offset: params.int('offset') ?: 0, browserCollection: results, actionDetails: 'browseDetails']
+        render template: "/components/browserColumn", plugin: 'icescrum-core', model: [name: 'project-browse', max: 9, total: total, term: term, offset: offset ?: 0, browserCollection: results, actionDetails: 'browseDetails']
     }
 
     @Secured('permitAll')
     @Cacheable(cache = 'projectCache', keyGenerator = 'projectKeyGenerator')
-    def browseDetails = {
+    def browseDetails() {
         withProduct('id'){ Product product ->
             if (!securityService.owner(product, springSecurityService.authentication)){
                 if ((product.preferences.hidden && !securityService.inProduct(product, springSecurityService.authentication))) {
@@ -815,7 +815,7 @@ class ProjectController {
         }
     }
 
-    def printPostits = {
+    def printPostits(String format, boolean get, boolean status) {
         withProduct{ Product product ->
             def stories1 = []
             def stories2 = []
@@ -824,7 +824,7 @@ class ProjectController {
             if (!stories) {
                 returnError(text:message(code: 'is.report.error.no.data'))
                 return
-            } else if (params.get) {
+            } else if (get) {
                 stories.each {
                     def story = [name: it.name,
                             id: it.uid,
@@ -855,8 +855,8 @@ class ProjectController {
                     }
 
                 }
-                outputJasperReport('stories', params.format, [[product: product.name, stories1: stories1 ?: null, stories2: stories2 ?: null]], product.name)
-            } else if (params.status) {
+                outputJasperReport('stories', format, [[product: product.name, stories1: stories1 ?: null, stories2: stories2 ?: null]], product.name)
+            } else if (status) {
                 render(status: 200, contentType: 'application/json', text: session?.progress as JSON)
             } else {
                 session.progress = new ProgressSupport()

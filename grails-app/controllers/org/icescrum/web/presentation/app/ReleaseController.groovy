@@ -37,7 +37,7 @@ class ReleaseController {
     def storyService
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def save = {
+    def save() {
         withProduct { Product product ->
             def release = new Release()
 
@@ -64,7 +64,7 @@ class ReleaseController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def update = {
+    def update() {
         withRelease{ Release release ->
             if (release.state == Release.STATE_DONE){
                 returnError(text:message(code:'is.release.error.update.state.done'))
@@ -94,7 +94,7 @@ class ReleaseController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def delete = {
+    def delete() {
         withRelease{ Release release ->
             releaseService.delete(release)
             withFormat {
@@ -106,7 +106,7 @@ class ReleaseController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def close = {
+    def close() {
         withRelease{ Release release ->
             releaseService.close(release)
             withFormat {
@@ -118,7 +118,7 @@ class ReleaseController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def activate = {
+    def activate() {
         withRelease{ Release release ->
             releaseService.activate(release)
             withFormat {
@@ -130,9 +130,9 @@ class ReleaseController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def autoPlan = {
+    def autoPlan(double capacity) {
         withRelease{ Release release ->
-            def plannedStories = storyService.autoPlan(release, params.double('capacity'))
+            def plannedStories = storyService.autoPlan(release, capacity)
             withFormat {
                 html { render status: 200, contentType: 'application/json', text: plannedStories as JSON }
                 json { renderRESTJSON(text:plannedStories, status: 201) }
@@ -142,7 +142,7 @@ class ReleaseController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def unPlan = {
+    def unPlan() {
         withRelease{ Release release ->
             def sprints = Sprint.findAllByParentRelease(release)
             def unPlanAllStories = storyService.unPlanAll(sprints, Sprint.STATE_WAIT)
@@ -155,7 +155,7 @@ class ReleaseController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def generateSprints = {
+    def generateSprints() {
         withRelease{ Release release ->
             def sprints = sprintService.generateSprints(release)
             withFormat {
@@ -167,7 +167,7 @@ class ReleaseController {
     }
 
     @Cacheable(cache = 'releaseCache', keyGenerator='releaseKeyGenerator')
-    def index = {
+    def index() {
         if (request?.format == 'html'){
             render(status:404)
             return
@@ -181,12 +181,12 @@ class ReleaseController {
         }
     }
 
-    def show = {
+    def show() {
         redirect(action:'index', controller: controllerName, params:params)
     }
 
     @Cacheable(cache = 'releaseCache', keyGenerator = 'releasesKeyGenerator')
-    def list = {
+    def list() {
         if (request?.format == 'html'){
             render(status:404)
             return

@@ -38,7 +38,7 @@ class QuickLookController {
 
     def springSecurityService
 
-    def index = {
+    def index() {
         if (params.story?.id) {
             forward(action:'story', params:['story.id':params.story.id])
         }
@@ -57,7 +57,7 @@ class QuickLookController {
     }
 
     @Cacheable(cache = 'storyCache', keyGenerator = 'storyKeyGenerator')
-    def story = {
+    def story() {
         withStory('story.id'){ Story story ->
             def dialog = g.render(template: "/story/quicklook", model: [
                     story: story,
@@ -70,7 +70,7 @@ class QuickLookController {
     }
 
     @Cacheable(cache = 'taskCache', keyGenerator = 'taskKeyGenerator')
-    def task = {
+    def task() {
         withTask('task.id'){ Task task ->
             def dialog = g.render(template: "/task/quicklook", model: [
                     task: task,
@@ -82,7 +82,7 @@ class QuickLookController {
     }
 
     @Cacheable(cache = 'featureCache', keyGenerator = 'featureKeyGenerator')
-    def feature = {
+    def feature() {
         withFeature('feature.id'){ Feature feature ->
             def sum = feature.stories?.sum { story -> story.effort ?: 0 }
             def effort = sum ?: '?'
@@ -100,7 +100,7 @@ class QuickLookController {
     }
 
     @Cacheable(cache = 'actorCache', keyGenerator = 'actorKeyGenerator')
-    def actor = {
+    def actor() {
         withActor('actor.id'){ Actor actor ->
             def dialog = g.render(template: "/actor/quicklook", model: [
                     actor: actor,

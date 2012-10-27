@@ -51,17 +51,17 @@ class ScrumOSController {
     def uiDefinitionService
     def grailsApplication
 
-    def index = {
+    def index(long product, String lang) {
         def currentUserInstance = null
 
-        def locale = params.lang ?: null
+        def locale = lang ?: null
         try {
             def localeAccept = request.getHeader("accept-language")?.split(",")
             if (localeAccept)
                 localeAccept = localeAccept[0]?.split("-")
 
             if (localeAccept?.size() > 0) {
-                locale = params.lang ?: localeAccept[0].toString()
+                locale = lang ?: localeAccept[0].toString()
             }
         } catch (Exception e) {}
 
@@ -75,7 +75,7 @@ class ScrumOSController {
                 RCU.getLocaleResolver(request).setLocale(request, response, new Locale(locale))
             }
         }
-        def currentProductInstance = params.product ? Product.get(params.long('product')) : null
+        def currentProductInstance = product ? Product.get(product) : null
 
         if (currentProductInstance?.preferences?.hidden && !securityService.inProduct(currentProductInstance, springSecurityService.authentication) && !securityService.stakeHolder(currentProductInstance,springSecurityService.authentication,false)){
             redirect(action:'error403',controller:'errors')
@@ -99,29 +99,29 @@ class ScrumOSController {
     }
 
 
-    def openWidget = {
-        if (!params.window) {
+    def openWidget(long product, String window) {
+        if (!window) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.error.no.widget')]] as JSON)
             return
         }
 
 
-        def uiRequested = params.window
+        def uiRequested = window
         def uiDefinition = uiDefinitionService.getDefinitionById(uiRequested)
         if (uiDefinition) {
             def paramsWidget = null
-            if (params.product) {
-                paramsWidget = [product: params.product]
+            if (product) {
+                paramsWidget = [product: product]
             }
 
-            def url = createLink(controller: params.window, action: uiDefinition.widget?.init, params: paramsWidget).toString() - request.contextPath
+            def url = createLink(controller: window, action: uiDefinition.widget?.init, params: paramsWidget).toString() - request.contextPath
             if (!menuBarSupport.permissionDynamicBar(url)) {
                 render(status: 400)
                 return
             }
 
             render is.widget([
-                    id: params.window,
+                    id: window,
                     hasToolbar: uiDefinition.widget?.toolbar,
                     closeable: uiDefinition.widget?.closeable,
                     sortable: uiDefinition.widget?.sortable,
@@ -134,35 +134,35 @@ class ScrumOSController {
         }
     }
 
-    def openWindow = {
-        if (!params.window) {
+    def openWindow(long product, String window, String viewType, String actionWindow) {
+        if (!window) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.error.no.window')]] as JSON)
             return
         }
-        params.viewType = params.viewType ?: springSecurityService.isLoggedIn() ? 'postitsView' : 'tableView'
+        viewType = viewType ?: springSecurityService.isLoggedIn() ? 'postitsView' : 'tableView'
 
-        def uiRequested = params.window
+        def uiRequested = window
         def uiDefinition = uiDefinitionService.getDefinitionById(uiRequested)
         if (uiDefinition) {
 
             def projectName
             def param = [:]
-            if (params.product) {
-                projectName = Product.get(params.long('product'))?.name
-                param = [product: params.product]
+            if (product) {
+                projectName = Product.get(product)?.name
+                param = [product: product]
             }
-            def url = createLink(controller: params.window, action: params.actionWindow ?: uiDefinition.window?.init, params: param).toString() - request.contextPath
+            def url = createLink(controller: window, action: actionWindow ?: uiDefinition.window?.init, params: param).toString() - request.contextPath
 
             if (!menuBarSupport.permissionDynamicBar(url)){
                 if (springSecurityService.isLoggedIn()){
                     render(status:403)
                 } else {
-                    render(status:401, contentType: 'application/json', text:[url:params.window ? '#'+params.window + (params.actionWindow ? '/'+params.actionWindow : '') : ''] as JSON)
+                    render(status:401, contentType: 'application/json', text:[url:window ? '#'+ window + (actionWindow ? '/' + actionWindow : '') : ''] as JSON)
                 }
                 return
             }
             render is.window([
-                    window: params.window,
+                    window: window,
                     projectName: projectName,
                     title: message(code: uiDefinition.window?.title),
                     help: message(code: uiDefinition.window?.help),
@@ -172,25 +172,25 @@ class ScrumOSController {
                     maximizeable: uiDefinition.window?.maximizeable,
                     closeable: uiDefinition.window?.closeable,
                     widgetable: uiDefinition.widget ? true : false,
-                    init: params.actionWindow ?: uiDefinition.window?.init
+                    init: actionWindow ?: uiDefinition.window?.init
             ], {})
         }
     }
 
-    def reloadToolbar = {
-        if (!params.window) {
+    def reloadToolbar(String window) {
+        if (!window) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.error.no.window.toolbar')]] as JSON)
             return
         }
-        def uiRequested = params.window
+        def uiRequested = window
         def uiDefinition = uiDefinitionService.getDefinitionById(uiRequested)
         if (uiDefinition) {
-            forward(controller: params.window, action: 'toolbar', params: params)
+            forward(controller: window, action: 'toolbar', params: params)
         }
     }
 
     @Secured('isAuthenticated()')
-    def upload = {
+    def upload() {
         def upfile = request.getFile('file')
         def filename = FilenameUtils.getBaseName(upfile.originalFilename)
         def ext = FilenameUtils.getExtension(upfile.originalFilename)
@@ -204,7 +204,7 @@ class ScrumOSController {
     }
 
     @Secured('isAuthenticated()')
-    def uploadStatus = {
+    def uploadStatus() {
         log.debug "upload status for session: ${session?.id} / fileID: ${params?."X-Progress-ID" ?: 'null'}"
         if (params."X-Progress-ID" && session[AjaxMultipartResolver.progressAttrName(params."X-Progress-ID")]) {
             if (((ProgressSupport) session[AjaxMultipartResolver.progressAttrName(params."X-Progress-ID")])?.complete) {
@@ -218,7 +218,7 @@ class ScrumOSController {
         }
     }
 
-    def about = {
+    def about() {
         def locale = RCU.getLocale(request)
         def file = new File(grailsAttributes.getApplicationContext().getResource("/infos").getFile().toString() + File.separatorChar + "about_${locale}.xml")
         if (!file.exists()) {
@@ -230,25 +230,25 @@ class ScrumOSController {
         render(status: 200, contentType: 'application/json', text:[dialog:dialog] as JSON)
     }
 
-    def textileParser = {
-        if (params.truncate) {
-            params.data = is.truncated([size: params.int('truncate')], params.data)
+    def textileParser(int truncate, String data, boolean withoutHeader) {
+        if (truncate) {
+            params.data = is.truncated([size: truncate], data)
         }
-        if (params.withoutHeader) {
-            render(text: wikitext.renderHtml([markup: "Textile"], params.data))
+        if (withoutHeader) {
+            render(text: wikitext.renderHtml([markup: "Textile"], data))
         } else {
             render(status: 200, template: 'textileParser')
         }
     }
 
-    def reportError = {
+    def reportError(String stackError, String comments) {
         try {
             notificationEmailService.send([
                     to: grailsApplication.config.icescrum.alerts.errors.to,
                     subject: "[iceScrum][report] Rapport d'erreur",
                     view: '/emails-templates/reportError',
-                    model: [error: params.stackError,
-                            comment: params.comments,
+                    model: [error: stackError,
+                            comment: comments,
                             appID: grailsApplication.config.icescrum.appID,
                             ip: request.getHeader('X-Forwarded-For') ?: request.getRemoteAddr(),
                             date: g.formatDate(date: new Date(), formatName: 'is.date.format.short.time'),
@@ -268,18 +268,18 @@ class ScrumOSController {
     }
 
     @Cacheable(cache = 'projectCache', keyGenerator = 'projectUserKeyGenerator')
-    def templates = {
+    def templates(long product) {
         def currentSprint = null
-        def product = null
-        if (params.long('product')) {
-            product = Product.get(params.product)
-            currentSprint = Sprint.findCurrentSprint(product.id).list() ?: null
+        def p = null
+        if (product) {
+            p = Product.get(product)
+            currentSprint = Sprint.findCurrentSprint(p.id).list() ?: null
         }
         def tmpl = g.render(
                 template: 'templatesJS',
                 model: [id: controllerName,
                         currentSprint: currentSprint,
-                        product:product
+                        product:p
                 ])
 
         tmpl = "${tmpl}".split("<div class='templates'>")

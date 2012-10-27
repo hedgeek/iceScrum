@@ -38,17 +38,17 @@ class SandboxController {
     def dropImportService
 
     @Secured('productOwner() and !archivedProduct()')
-    def openDialogAcceptAs = {
-        def sprint = Sprint.findCurrentSprint(params.long('product')).list()
+    def openDialogAcceptAs(long product) {
+        def sprint = Sprint.findCurrentSprint(product).list()
         def dialog = g.render(template: 'dialogs/acceptAs', model: [sprint: sprint])
         render(status: 200, contentType: 'application/json', text: [dialog: dialog] as JSON)
     }
 
-    def list = {
-        def currentProduct = Product.load(params.product)
-        def stories = (params.term) ? Story.findInStoriesSuggested(params.long('product'), '%' + params.term + '%').list() : Story.findAllByBacklogAndState(currentProduct, Story.STATE_SUGGESTED, [sort: 'suggestedDate', order: 'desc'])
+    def list(long product, String term, String windowType, String viewType) {
+        def currentProduct = Product.load(product)
+        def stories = (term) ? Story.findInStoriesSuggested(product, '%' + term + '%').list() : Story.findAllByBacklogAndState(currentProduct, Story.STATE_SUGGESTED, [sort: 'suggestedDate', order: 'desc'])
 
-        def template = params.windowType == 'widget' ? 'widget/widgetView' : params.viewType ? 'window/' + params.viewType : 'window/postitsView'
+        def template = windowType == 'widget' ? 'widget/widgetView' : viewType ? 'window/' + viewType : 'window/postitsView'
         def typeSelect = BundleUtils.storyTypes.collect {k, v -> "'$k':'${message(code: v)}'" }.join(',')
 
         def featureSelect = "'':'${message(code: 'is.ui.sandbox.manage.chooseFeature')}'"
@@ -65,44 +65,41 @@ class SandboxController {
     }
 
     @Secured('isAuthenticated() and !archivedProduct()')
-    def add = {
-        def currentProduct = Product.get(params.product)
+    def add(long product) {
 
         render(template: '/story/manage', model: [
                 referrer: controllerName,
                 typesLabels: BundleUtils.storyTypes.values().collect {v -> message(code: v)},
                 typesKeys: BundleUtils.storyTypes.keySet().asList(),
                 featureSelect: currentProduct.features.asList(),
-                storiesSelect: Story.findAllByStateGreaterThanEqualsAndBacklog(Story.STATE_SUGGESTED, currentProduct),
-                story: params.story,
+                storiesSelect: Story.findAllByStateGreaterThanEqualsAndBacklog(Story.STATE_SUGGESTED, Product.load(product)),
                 isUsedTemplate: false
         ])
     }
 
-    def editStory = {
-        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, id: params.id, product: params.product])
+    def editStory(long product, long id) {
+        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, id: id, product: product])
     }
 
     /**
      * Import stories via drag&drop (and more)
      */
     @Secured('isAuthenticated() and !archivedProduct()')
-    def dropImport = {
-        if (!params.data) {
+    def dropImport(long product, String data, boolean confirm) {
+        if (!data) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.error.import.no.data')]] as JSON)
             return
         }
-        def data = params.data
-        def currentProduct = Product.get(params.long('product'))
+        def currentProduct = Product.get(product)
         // The actual story field available to import
-        def mapping = [
+        def _mapping = [
                 name: 'is.story.name',
                 description: 'is.backlogelement.description',
                 feature: 'is.feature',
                 notes: 'is.backlogelement.notes'
         ]
 
-        def parsedData = dropImportService.parseText(params.data)
+        def parsedData = dropImportService.parseText(data)
 
         // When the data is dropped
         if (!params.mapping) {
@@ -115,11 +112,11 @@ class SandboxController {
             } else {
                 // if the data is considered valid, then we ask the user to match his columns with
                 // the actual mapping
-                if (parsedData.columns.size() > 0 && !params.confirm) {
+                if (parsedData.columns.size() > 0 && !confirm) {
 
                     def dialog = g.render(template: "dialogs/import", model: [data: data,
                             columns: parsedData.columns,
-                            mapping: mapping,
+                            mapping: _mapping,
                             matchValues: dropImportService.matchBundle(mapping, parsedData.columns)])
 
                     render(status: 200, contentType: 'application/json', text: [dialog: dialog] as JSON)
@@ -155,14 +152,14 @@ class SandboxController {
         }
     }
 
-    def print = {
-        def currentProduct = Product.get(params.product)
+    def print(long product, String format, boolean get, boolean status) {
+        def currentProduct = Product.get(product)
         def data = []
         def stories = Story.findAllByBacklogAndState(currentProduct, Story.STATE_SUGGESTED, [sort: 'suggestedDate', order: 'desc'])
         if (!stories) {
             returnError(text:message(code: 'is.report.error.no.data'))
             return
-        } else if (params.get) {
+        } else if (get) {
             stories.each {
                 data << [
                         name: it.name,
@@ -174,8 +171,8 @@ class SandboxController {
                         feature: it.feature?.name,
                 ]
             }
-            outputJasperReport('sandbox', params.format, [[product: currentProduct.name, stories: data ?: null]], currentProduct.name)
-        } else if (params.status) {
+            outputJasperReport('sandbox', format, [[product: currentProduct.name, stories: data ?: null]], currentProduct.name)
+        } else if (status) {
             render(status: 200, contentType: 'application/json', text: session.progress as JSON)
         } else {
             session.progress = new ProgressSupport()

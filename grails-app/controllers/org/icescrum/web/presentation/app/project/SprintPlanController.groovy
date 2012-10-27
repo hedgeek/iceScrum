@@ -83,21 +83,21 @@ class SprintPlanController {
                         sprint: sprint ?: null])
     }
 
-    def index = {
+    def index(long product, long id, long userid, String term, String viewType) {
         def sprint
         User user = (User) springSecurityService.currentUser
-        def currentProduct = Product.load(params.product)
-        if (!params.id) {
+        def currentProduct = Product.load(product)
+        if (!id) {
             sprint = Sprint.findCurrentOrNextSprint(currentProduct.id).list()[0]
             if (sprint)
-                params.id = sprint.id
+                id = sprint.id
             else {
                 def release = currentProduct.releases.find {it.state == Release.STATE_WAIT}
                 render(template: 'window/blank', model: [release: release ?: null])
                 return
             }
         }else{
-            sprint = Sprint.getInProduct(params.long('product'),params.long('id')).list()
+            sprint = Sprint.getInProduct(product,id).list()
         }
         if (!sprint) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.sprint.not.exist')]] as JSON)
@@ -110,7 +110,7 @@ class SprintPlanController {
                                                 history:"false",
                                                 remote:"true",
                                                 onSuccess:"jQuery.icescrum.updateHideDoneState('${message(code: 'is.ui.sprintPlan.toolbar.showDoneState')}','${message(code: 'is.ui.sprintPlan.toolbar.hideDoneState')}');" ,
-                                                id:"${params.id}",
+                                                id:"${id}",
                                                 update:"window-content-${controllerName}",user.preferences.hideDoneState ? message(code: 'is.ui.sprintPlan.toolbar.showDoneState') : message(code: 'is.ui.sprintPlan.toolbar.hideDoneState'))
                                         } </span>"""
 
@@ -125,12 +125,11 @@ class SprintPlanController {
         def stories
         def recurrentTasks
         def urgentTasks
-        def userid = params.long('userid')
 
-        if (params.term && params.term != '') {
-            stories = Story.findStoriesFilter(sprint, '%' + params.term + '%', user, userid).listDistinct()
-            recurrentTasks = Task.findRecurrentTasksFilter(sprint, '%' + params.term + '%', user, userid).listDistinct()
-            urgentTasks = Task.findUrgentTasksFilter(sprint, '%' + params.term + '%', user, userid).listDistinct()
+        if (term != '') {
+            stories = Story.findStoriesFilter(sprint, '%' + term + '%', user, userid).listDistinct()
+            recurrentTasks = Task.findRecurrentTasksFilter(sprint, '%' + term + '%', user, userid).listDistinct()
+            urgentTasks = Task.findUrgentTasksFilter(sprint, '%' + term + '%', user, userid).listDistinct()
         } else {
             stories = Story.findStoriesFilter(sprint, null, user, userid).listDistinct()
             recurrentTasks = Task.findRecurrentTasksFilter(sprint, null, user, userid).listDistinct()
@@ -143,7 +142,7 @@ class SprintPlanController {
         currentSuite = currentSuite.eachWithIndex { t, i ->
             suiteSelect += "'${t}':'${t}'" + (i < currentSuite.size() - 1 ? ',' : '')
         }
-        def template = params.viewType ? 'window/' + params.viewType : 'window/postitsView'
+        def template = viewType ? 'window/' + viewType : 'window/postitsView'
         render(template: template,
                 model: [sprint: sprint,
                         stories: stories.findAll{it.state < Story.STATE_DONE},
@@ -164,22 +163,22 @@ class SprintPlanController {
     }
 
 
-    def updateTable = {
+    def updateTable(boolean loadrich, boolean table, String name) {
 
         withTask{ Task task ->
-            if (params.boolean('loadrich')) {
+            if (loadrich) {
                 render(status: 200, text: task.notes ?: '')
                 return
             }
 
-            if (!params.table) {
+            if (!table) {
                 return
             }
 
-            if (params.name != 'estimation') {
-                if (task.state == Task.STATE_WAIT && params.name == "state" && params.task.state >= Task.STATE_BUSY) {
+            if (name != 'estimation') {
+                if (task.state == Task.STATE_WAIT && name == "state" && params.task.state >= Task.STATE_BUSY) {
                     task.inProgressDate = new Date()
-                } else if (task.state == Task.STATE_BUSY && params.name == "state" && params.task.state == Task.STATE_WAIT) {
+                } else if (task.state == Task.STATE_BUSY && name == "state" && params.task.state == Task.STATE_WAIT) {
                     task.inProgressDate = null
                 }
                 task.properties = params.task
@@ -193,19 +192,19 @@ class SprintPlanController {
             taskService.update(task, user)
 
             def returnValue
-            if (params.name == 'notes') {
-                returnValue = wikitext.renderHtml(markup: 'Textile', text: task."${params.name}")
+            if (name == 'notes') {
+                returnValue = wikitext.renderHtml(markup: 'Textile', text: task."${name}")
                 returnValue = returnValue ?: ''
-            } else if (params.name == 'estimation') {
+            } else if (name == 'estimation') {
                 returnValue = task.estimation != null ? task.estimation.toString() : '?'
-            } else if (params.name == 'state') {
+            } else if (name == 'state') {
                 returnValue = g.message(code: BundleUtils.taskStates.get(task.state))
                 returnValue = returnValue ?: ''
-            } else if (params.name == 'description') {
+            } else if (name == 'description') {
                 returnValue = task.description?.encodeAsHTML()?.encodeAsNL2BR()
                 returnValue = returnValue ?: ''
             } else {
-                returnValue = task[params.name].encodeAsHTML()
+                returnValue = task[name].encodeAsHTML()
                 returnValue = returnValue ?: ''
             }
 
@@ -214,8 +213,8 @@ class SprintPlanController {
         }
     }
 
-    def add = {
-        def sprint = Sprint.getInProduct(params.long('product'),params.long('id')).list()
+    def add(long product, long id) {
+        def sprint = Sprint.getInProduct(product,id).list()
         if (!sprint) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.sprint.error.not.exist')]] as JSON)
             return
@@ -224,7 +223,7 @@ class SprintPlanController {
 
         def selected = null
         if (params.story?.id && !(params.story.id in ['recurrent', 'urgent']))
-            selected = Story.getInProduct(params.long('product'),params.long('story.id')).list()
+            selected = Story.getInProduct(product,params.long('story.id')).list()
         else if (params.story?.id && (params.story.id in ['recurrent', 'urgent']))
             selected = [id: params.story?.id]
 
@@ -241,11 +240,11 @@ class SprintPlanController {
                 selected: selected,
                 colorsLabels: BundleUtils.taskColorsSelect.values().collect { message(code: it) },
                 colorsKeys: BundleUtils.taskColorsSelect.keySet().asList(),
-                params: [product: params.product, id: sprint.id]
+                params: [product: product, id: sprint.id]
         ])
     }
 
-    def edit = {
+    def edit(long product, String referrerUrl) {
         withTask('subid'){Task task ->
             def selected = (task.type == Task.TYPE_RECURRENT) ? [id: 'recurrent'] : (task.type == Task.TYPE_URGENT) ? [id: 'urgent'] : task.parentStory
             def sprint = task.backlog
@@ -263,30 +262,30 @@ class SprintPlanController {
 
             render(template: 'window/manage', model: [
                     task: task,
-                    referrerUrl: params.referrerUrl,
+                    referrerUrl: referrerUrl,
                     stories: selectList,
                     selected: selected,
                     next: next?.id ?: '',
                     sprint: task.backlog,
                     colorsLabels: BundleUtils.taskColorsSelect.values().collect { message(code: it) },
                     colorsKeys: BundleUtils.taskColorsSelect.keySet().asList(),
-                    params: [product: params.product, id: task.id]
+                    params: [product: product, id: task.id]
             ])
         }
     }
 
-    def editStory = {
-        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, id: params.id, product: params.product])
+    def editStory(long product, long id) {
+        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, id: id, product: product])
     }
 
-    def doneDefinition = {
+    def doneDefinition() {
         withSprint{ Sprint sprint ->
             render(template: 'window/doneDefinition', model: [sprint: sprint])
         }
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def copyFromPreviousDoneDefinition = {
+    def copyFromPreviousDoneDefinition(long product) {
         withSprint{ Sprint sprint ->
             if (sprint.orderNumber > 1 || sprint.parentRelease.orderNumber > 1) {
                 def previous
@@ -300,18 +299,18 @@ class SprintPlanController {
                 render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.sprint.error.doneDefinition.no.previous')]] as JSON)
             }
             sprintService.updateDoneDefinition(sprint)
-            redirect(action: 'doneDefinition', params: [product: params.product, id: sprint.id])
+            redirect(action: 'doneDefinition', params: [product: product, id: sprint.id])
         }
     }
 
-    def retrospective = {
+    def retrospective() {
         withSprint{ Sprint sprint ->
             render(template: 'window/retrospective', model: [sprint: sprint])
         }
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def copyFromPreviousRetrospective = {
+    def copyFromPreviousRetrospective() {
         withSprint{ Sprint sprint ->
             if (sprint.orderNumber > 1 || sprint.parentRelease.orderNumber > 1) {
                 def previous
@@ -325,30 +324,30 @@ class SprintPlanController {
                 render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.sprint.error.retrospective.no.previous')]] as JSON)
             }
             sprintService.updateRetrospective(sprint)
-            redirect(action: 'retrospective', params: [product: params.product, id: sprint.id])
+            redirect(action: 'retrospective', params: [product: product, id: sprint.id])
         }
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def updateDoneDefinition = {
+    def updateDoneDefinition(String doneDefinition) {
         withSprint{ Sprint sprint ->
-            sprint.doneDefinition = params.doneDefinition
+            sprint.doneDefinition = doneDefinition
             sprintService.updateDoneDefinition(sprint)
             render(status: 200)
         }
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def updateRetrospective = {
+    def updateRetrospective(String retrospective) {
         withSprint{ Sprint sprint ->
-            sprint.retrospective = params.retrospective
+            sprint.retrospective = retrospective
             sprintService.updateRetrospective(sprint)
             render(status: 200)
         }
     }
 
     @Cacheable(cache = "sprintCache", keyGenerator = 'sprintKeyGenerator')
-    def sprintBurndownHoursChart = {
+    def sprintBurndownHoursChart() {
         withSprint{ Sprint sprint ->
             def values = sprintService.sprintBurndownHoursValues(sprint)
             if (values.size() > 0) {
@@ -364,7 +363,7 @@ class SprintPlanController {
     }
 
     @Cacheable(cache = "sprintCache", keyGenerator = 'sprintKeyGenerator')
-    def sprintBurnupTasksChart = {
+    def sprintBurnupTasksChart() {
         withSprint{ Sprint sprint ->
             def values = sprintService.sprintBurnupTasksValues(sprint)
             if (values.size() > 0) {
@@ -380,7 +379,7 @@ class SprintPlanController {
     }
 
     @Cacheable(cache = "sprintCache", keyGenerator = 'sprintKeyGenerator')
-    def sprintBurnupStoriesChart = {
+    def sprintBurnupStoriesChart() {
         withSprint{ Sprint sprint ->
             def values = sprintService.sprintBurnupStoriesValues(sprint)
             if (values.size() > 0) {
@@ -396,7 +395,7 @@ class SprintPlanController {
     }
 
     @Cacheable(cache = "sprintCache", keyGenerator = 'sprintKeyGenerator')
-    def sprintBurnupPointsChart = {
+    def sprintBurnupPointsChart() {
         withSprint{ Sprint sprint ->
             def values = sprintService.sprintBurnupStoriesValues(sprint)
             if (values.size() > 0) {
@@ -411,26 +410,26 @@ class SprintPlanController {
         }
     }
 
-    def changeFilterTasks = {
-        if (!params.filter || !params.filter in ['allTasks', 'myTasks', 'freeTasks']) {
+    def changeFilterTasks(long product, long id, String filter) {
+        if (!filter || !filter in ['allTasks', 'myTasks', 'freeTasks']) {
             def msg = message(code: 'is.user.preferences.error.not.filter')
             render(status: 400, contentType: 'application/json', text: [notice: [text: msg]] as JSON)
             return
         }
         User user = (User) springSecurityService.currentUser
-        user.preferences.filterTask = params.filter
+        user.preferences.filterTask = filter
         userService.update(user)
-        redirect(action: 'index', params: [product: params.product, id: params.id])
+        redirect(action: 'index', params: [product: product, id: id])
     }
 
-    def changeHideDoneState = {
+    def changeHideDoneState(long product, long id) {
         User user = (User) springSecurityService.currentUser
         user.preferences.hideDoneState = !user.preferences.hideDoneState
         userService.update(user)
-        redirect(action: 'index', params: [product: params.product, id: params.id])
+        redirect(action: 'index', params: [product: product, id: id])
     }
 
-    def copyRecurrentTasksFromPreviousSprint = {
+    def copyRecurrentTasksFromPreviousSprint() {
         withSprint{ Sprint sprint ->
             def tasks = sprintService.copyRecurrentTasksFromPreviousSprint(sprint)
             render(status: 200, contentType: 'application/json', text: tasks as JSON)
@@ -440,9 +439,9 @@ class SprintPlanController {
     /**
      * Export the sprint backlog elements in multiple format (PDF, DOCX, RTF, ODT)
      */
-    def print = {
-        def currentProduct = Product.load(params.product)
-        def sprint = Sprint.getInProduct(params.long('product'),params.long('id')).list()
+    def print(long product, long id, String locationHash, boolean get, boolean status, String format) {
+        def currentProduct = Product.load(product)
+        def sprint = Sprint.getInProduct(product,id).list()
         def data
         def chart = null
 
@@ -451,8 +450,8 @@ class SprintPlanController {
             return
         }
 
-        if (params.locationHash) {
-            chart = processLocationHash(params.locationHash.decodeURL()).action
+        if (locationHash) {
+            chart = processLocationHash(locationHash.decodeURL()).action
         }
 
         switch (chart) {
@@ -494,9 +493,9 @@ class SprintPlanController {
 
         if (data.size() <= 0) {
             returnError(text:message(code: 'is.report.error.no.data'))
-        } else if (params.get) {
-            outputJasperReport(chart ?: 'sprintPlan', params.format, data, currentProduct.name, ['labels.projectName': currentProduct.name])
-        } else if (params.status) {
+        } else if (get) {
+            outputJasperReport(chart ?: 'sprintPlan', format, data, currentProduct.name, ['labels.projectName': currentProduct.name])
+        } else if (status) {
             render(status: 200, contentType: 'application/json', text: session?.progress as JSON)
         } else {
             session.progress = new ProgressSupport()
@@ -505,8 +504,8 @@ class SprintPlanController {
         }
     }
 
-    def printPostits = {
-        def currentProduct = Product.load(params.product)
+    def printPostits(long product, String locationHash, boolean get, boolean status, String format) {
+        def currentProduct = Product.load(product)
         withSprint{ Sprint sprint ->
             def stories1 = []
             def stories2 = []
@@ -514,7 +513,7 @@ class SprintPlanController {
             if (!sprint.stories) {
                 returnError(text:message(code: 'is.report.error.no.data'))
                 return
-            } else if (params.get) {
+            } else if (get) {
                 sprint.stories?.each {
                     def story = [name: it.name,
                             id: it.uid,
@@ -545,8 +544,8 @@ class SprintPlanController {
                     }
 
                 }
-                outputJasperReport('stories', params.format, [[product: currentProduct.name, stories1: stories1 ?: null, stories2: stories2 ?: null]], currentProduct.name)
-            } else if (params.status) {
+                outputJasperReport('stories', format, [[product: currentProduct.name, stories1: stories1 ?: null, stories2: stories2 ?: null]], currentProduct.name)
+            } else if (status) {
                 render(status: 200, contentType: 'application/json', text: session?.progress as JSON)
             } else {
                 session.progress = new ProgressSupport()

@@ -75,7 +75,7 @@ class StoryController {
         }
     }
 
-    def index = {
+    def index() {
         def id = params.uid?.toInteger() ?: params.id?.toLong() ?: null
         withStory(id, params.uid?true:false) { Story story ->
             def user = springSecurityService.currentUser
@@ -129,7 +129,7 @@ class StoryController {
     }
 
     @Secured('isAuthenticated() and !archivedProduct()')
-    def save = {
+    def save() {
 
         def story = new Story()
         bindData(story, this.params, [include:['name','description','notes','type','textAs','textICan','textTo']], "story")
@@ -186,7 +186,7 @@ class StoryController {
     }
 
     @Secured('isAuthenticated()')
-    def update = {
+    def update() {
         withStory{ Story story ->
             def user = springSecurityService.currentUser
             if (story.backlog.preferences.archived){
@@ -329,7 +329,7 @@ class StoryController {
     }
 
     @Secured('isAuthenticated()')
-    def delete = {
+    def delete() {
         withStories{List<Story> stories ->
             def ids = []
             stories.each { ids << [id: it.id, state: it.state] }
@@ -343,7 +343,7 @@ class StoryController {
     }
 
     @Secured('isAuthenticated()')
-    def edit = {
+    def edit() {
         def id = params.long('subid') ? 'subid' : 'id'
         withStory(id){Story story ->
             if (story.state == Story.STATE_DONE) {
@@ -411,7 +411,7 @@ class StoryController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def rank = {
+    def rank() {
         withStory{ Story story ->
             Integer rank = params.story.rank instanceof Number ? params.story.rank : params.story.rank.isNumber() ? params.story.rank.toInteger() : null
             if (story == null || rank == null)
@@ -430,7 +430,7 @@ class StoryController {
     }
 
     @Secured('(teamMember() or scrumMaster()) and !archivedProduct()')
-    def estimate = {
+    def estimate() {
         withStory{ Story story ->
             try {
                 storyService.estimate(story,params.story.effort)
@@ -446,7 +446,7 @@ class StoryController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def unPlan = {
+    def unPlan(boolean shiftToNext) {
         withStory { Story story ->
             if (!story.parentSprint){
                 returnError(text:message(code:'is.story.error.not.inSprint'))
@@ -455,7 +455,7 @@ class StoryController {
             def capacity = (story.parentSprint.state == Sprint.STATE_WAIT) ? (story.parentSprint.capacity -= story.effort) : story.parentSprint.capacity
             def sprint = [id: story.parentSprint.id, class: Sprint.class, velocity: story.parentSprint.velocity, capacity: capacity, state: story.parentSprint.state]
 
-            if (params.boolean('shiftToNext')) {
+            if (shiftToNext) {
                 def nextSprint = Sprint.findByParentReleaseAndOrderNumber(story.parentSprint.parentRelease, story.parentSprint.orderNumber + 1)
                 if (nextSprint) {
                     storyService.plan(nextSprint, story)
@@ -475,7 +475,7 @@ class StoryController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def plan = {
+    def plan(int position) {
         withStory{ Story story ->
             if (story.parentSprint?.id == params.sprint.id?.toLong()) {
                 returnError(text:message(code:'is.story.error.same.sprint.planned'))
@@ -488,8 +488,8 @@ class StoryController {
                     oldSprint = [id: story.parentSprint.id, class: Sprint.class, velocity: story.parentSprint.velocity, capacity: capacity, state: story.parentSprint.state]
                 }
                 storyService.plan(sprint, story)
-                if (params.position && params.int('position') != 0) {
-                    storyService.rank(story, params.int('position'))
+                if (position != 0) {
+                    storyService.rank(story, position)
                 }
                 withFormat {
                     html { render(status: 200, contentType: 'application/json', text: [story: story, oldSprint: oldSprint] as JSON)  }
@@ -501,7 +501,7 @@ class StoryController {
     }
 
     @Secured('(isAuthenticated()) and !archivedProduct()')
-    def associateFeature = {
+    def associateFeature() {
         withStory{ Story story ->
             withFeature(params.feature.id?.toLong()){ Feature feature ->
                 storyService.associateFeature(feature, story)
@@ -515,7 +515,7 @@ class StoryController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def done = {
+    def done() {
         withStory {Story story ->
             storyService.done(story)
             withFormat {
@@ -527,7 +527,7 @@ class StoryController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def unDone = {
+    def unDone() {
         withStory {Story story ->
             storyService.unDone(story)
             withFormat {
@@ -539,7 +539,7 @@ class StoryController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def accept = {
+    def accept(int rank) {
         def type = params.type instanceof Map ? params.type.value : params.type
         withStories{List<Story> stories ->
             stories = stories.reverse()
@@ -548,14 +548,14 @@ class StoryController {
             if (type == 'story') {
                 elements = storyService.acceptToBacklog(stories)
                 //case one story & d&d from sandbox to backlog
-                if (params.rank){
-                    storyService.rank(stories.first(), params.int('rank'));
+                if (rank){
+                    storyService.rank(stories.first(), rank);
                 }
             } else if (type == 'feature') {
                 elements = storyService.acceptToFeature(stories)
                 //case one story & d&d from sandbox to backlog
-                if (params.rank){
-                    featureService.rank((Feature)elements.first(), params.int('rank'));
+                if (rank){
+                    featureService.rank((Feature)elements.first(), rank);
                 }
             } else if (type == 'task') {
                 elements = storyService.acceptToUrgentTask(stories)
@@ -568,13 +568,13 @@ class StoryController {
         }
     }
 
-    def download = {
-        forward(action: 'download', controller: 'attachmentable', id: params.id)
+    def download(long id) {
+        forward(action: 'download', controller: 'attachmentable', id: id)
         return
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def copy = {
+    def copy() {
         withStories{List<Story> stories ->
             def copiedStories = storyService.copy(stories)
             withFormat {
@@ -586,19 +586,19 @@ class StoryController {
     }
 
     @Secured('inProduct()')
-    def show = {
+    def show() {
         redirect(action:'index', controller: controllerName, params:params)
     }
 
     @Secured('inProduct()')
     @Cacheable(cache = 'storyCache', keyGenerator='storiesKeyGenerator')
-    def list = {
+    def list(long product, String term) {
         if (request?.format == 'html'){
             render(status:404)
             return
         }
-        def currentProduct = Product.load(params.product)
-        def stories = (params.term) ? Story.findInStories(params.long('product'), '%' + params.term + '%').list() : Story.findAllByBacklog(currentProduct, [sort: 'id', order: 'asc'])
+        def currentProduct = Product.load(product)
+        def stories = term ? Story.findInStories(product, '%' + term + '%').list() : Story.findAllByBacklog(currentProduct, [sort: 'id', order: 'asc'])
         withFormat {
             json { renderRESTJSON(text:stories) }
             xml  { renderRESTXML(text:stories) }
@@ -640,16 +640,16 @@ class StoryController {
     }
 
     @Secured('inProduct()')
-    def showComment = {
+    def showComment(long id) {
         if (request?.format == 'html'){
             render(status:404)
             return
         }
-        if (!params.id) {
+        if (!id) {
             returnError(text:message(code: 'is.comment.error.not.exist'))
             return
         }
-        def comment = Comment.get(params.long('id'))
+        def comment = Comment.get(id)
         if (!comment) {
             returnError(text:message(code: 'is.comment.error.not.exist'))
             return
@@ -662,9 +662,9 @@ class StoryController {
     }
 
     @Secured('isAuthenticated() and !archivedProduct()')
-    def saveComment = {
+    def saveComment(long product) {
         def poster = springSecurityService.currentUser
-        def story = Story.getInProduct(params.long('product'),params.long('comment.ref')).list()
+        def story = Story.getInProduct(product,params.long('comment.ref')).list()
         try {
             if (params['comment'] instanceof Map) {
                 Comment.withTransaction { status ->
@@ -702,24 +702,24 @@ class StoryController {
     }
 
     @Secured('isAuthenticated() and !archivedProduct()')
-    def editCommentEditor = {
-        if (params.id == null) {
+    def editCommentEditor(long product, long commentable, long id) {
+        if (id == null) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.ui.backlogelement.comment.error.not.exists')]] as JSON)
             return
         }
-        def comment = Comment.get(params.long('id'))
-        def story = Story.getInProduct(params.long('product'),params.long('commentable')).list()
+        def comment = Comment.get(id)
+        def story = Story.getInProduct(product,commentable).list()
         render(template: '/components/commentEditor', plugin: 'icescrum-core', model: [comment: comment, mode: 'edit', commentable: story])
     }
 
     @Secured('isAuthenticated() and !archivedProduct()')
-    def updateComment = {
+    def updateComment(long product) {
         if (params.comment.id == null) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.ui.backlogelement.comment.error.not.exists')]] as JSON)
             return
         }
         def comment = Comment.get(params.long('comment.id'))
-        def commentable = Story.getInProduct(params.long('product'),params.long('comment.ref')).list()
+        def commentable = Story.getInProduct(product,params.long('comment.ref')).list()
         comment.body = params.comment.body
         try {
             comment.save()
@@ -745,22 +745,22 @@ class StoryController {
         }
     }
 
-    def editStory = {
-        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, referrerUrl:controllerName+'/'+params.id, id: params.id, product: params.product])
+    def editStory(long product, long id) {
+        forward(action: 'edit', controller: 'story', params: [referrer: controllerName, referrerUrl:controllerName+'/'+id, id: id, product: product])
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def deleteComment = {
-        if (params.id == null) {
+    def deleteComment(long product, long id, long backlogElement) {
+        if (id == null) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.ui.backlogelement.comment.error.not.exists')]] as JSON)
             return
         }
-        if (params.backlogElement == null) {
+        if (backlogElement == null) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.story.error.not.exist')]] as JSON)
             return
         }
-        def comment = Comment.get(params.long('id'))
-        def commentable = Story.getInProduct(params.long('product'),params.long('backlogElement')).list()
+        def comment = Comment.get(id)
+        def commentable = Story.getInProduct(product,backlogElement).list()
         def idc = [id:comment.id,backlogElement:commentable.id]
         try {
             commentable.removeComment(comment)
@@ -778,11 +778,11 @@ class StoryController {
         }
     }
 
-    def shortURL = {
-        redirect(url: is.createScrumLink(controller: 'story', params:[uid: params.id]))
+    def shortURL(long id) {
+        redirect(url: is.createScrumLink(controller: 'story', params:[uid: id]))
     }
 
-    def summaryPanel = {
+    def summaryPanel(long product) {
         withStory { Story story ->
             def activities = story.getActivities()
             if (story.tasks) {
@@ -793,42 +793,42 @@ class StoryController {
             render(template: "/backlogElement/summary",
                     model: [summary: summary,
                             backlogElement: story,
-                            product: Product.get(params.long('product'))
+                            product: Product.get(product)
                     ])
         }
     }
 
-    def taskPanel = {
+    def taskPanel(long product) {
         withStory { Story story ->
             render(template: "window/tasks",
                 model: [taskStateBundle: BundleUtils.taskStates,
                         story: story,
-                        product: params.product
+                        product: product
                 ])
         }
     }
 
-    def testsPanel = {
+    def testsPanel(long product) {
         withStory { Story story ->
             render(template: "window/tests",
                 model: [story: story,
-                        product: params.product,
+                        product: product,
                         user: springSecurityService.currentUser
                 ])
         }
     }
 
-    def commentsPanel = {
+    def commentsPanel(long product) {
         withStory { Story story ->
             render(template: "window/comments",
                 model: [story: story,
-                        product: params.product
+                        product: product
                 ])
         }
     }
 
     @Secured('isAuthenticated()')
-    def follow = {
+    def follow() {
         withStory { Story story ->
             def user = springSecurityService.currentUser
             try {
@@ -843,7 +843,7 @@ class StoryController {
     }
 
     @Secured('isAuthenticated()')
-    def unfollow = {
+    def unfollow() {
         withStory { Story story ->
             try {
                 story.removeLink(springSecurityService.principal.id)
@@ -856,7 +856,7 @@ class StoryController {
         }
     }
 
-    def followers = {
+    def followers() {
         withStory { Story story ->
             def followers = story.getTotalFollowers()
             render(status: 200, contentType: 'application/json', text: [followers: followers + " " + message(code: 'is.followable.followers', args: [followers > 1 ? 's' : ''])] as JSON)
@@ -864,16 +864,16 @@ class StoryController {
     }
 
     @Secured('inProduct()')
-    def showAcceptanceTest = {
+    def showAcceptanceTest(long id) {
         if (request?.format == 'html'){
             render(status:404)
             return
         }
-        if (!params.id) {
+        if (!id) {
             returnError(text:message(code: 'is.ui.acceptanceTest.not.exists'))
             return
         }
-        AcceptanceTest acceptanceTest = AcceptanceTest.get(params.long('acceptanceTest.id'))
+        AcceptanceTest acceptanceTest = AcceptanceTest.get(id)
         if (!acceptanceTest) {
             returnError(text:message(code: 'is.ui.acceptanceTest.not.exists'))
             return
@@ -885,7 +885,7 @@ class StoryController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def saveAcceptanceTest = {
+    def saveAcceptanceTest() {
         withStory { story ->
             def acceptanceTest = new AcceptanceTest()
             bindData(acceptanceTest, this.params, [include:['name','description']], "acceptanceTest")
@@ -906,7 +906,7 @@ class StoryController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def updateAcceptanceTest = {
+    def updateAcceptanceTest() {
         if (!params.acceptanceTest.id) {
             returnError(text:message(code: 'is.ui.acceptanceTest.not.exists'))
             return
@@ -936,12 +936,12 @@ class StoryController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def deleteAcceptanceTest = {
-        if (params.id == null) {
+    def deleteAcceptanceTest(long id) {
+        if (id == null) {
             returnError(text:message(code: 'is.ui.acceptanceTest.not.exists'))
             return
         }
-        AcceptanceTest acceptanceTest = AcceptanceTest.get(params.long('id'))
+        AcceptanceTest acceptanceTest = AcceptanceTest.get(id)
         if (!acceptanceTest) {
             returnError(text:message(code: 'is.ui.acceptanceTest.not.exists'))
             return
@@ -965,12 +965,12 @@ class StoryController {
     }
 
     @Secured('inProduct() and !archivedProduct()')
-    def acceptanceTestEditor = {
-        if (params.id == null) {
+    def acceptanceTestEditor(long id) {
+        if (id == null) {
             returnError(text:message(code: 'is.ui.acceptanceTest.not.exists'))
             return
         }
-        def acceptanceTest = AcceptanceTest.get(params.long('id'))
+        def acceptanceTest = AcceptanceTest.get(id)
         render(template: '/acceptanceTest/acceptanceTestForm', model: [acceptanceTest: acceptanceTest, parentStory: acceptanceTest.parentStory])
     }
 }

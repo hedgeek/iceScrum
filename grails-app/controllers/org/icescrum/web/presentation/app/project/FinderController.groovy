@@ -9,7 +9,7 @@ class FinderController {
 
         def springSecurityService
 
-        def tag = {
+        def tag(String term) {
             withProduct{ Product p ->
                 if ((p.preferences.hidden && !request.inProduct) || (!p.preferences.hidden && !springSecurityService.isLoggedIn())){
                     render status:403, text:''
@@ -32,8 +32,8 @@ class FinderController {
                            AND tagLink.tag.name LIKE :term
                            ORDER BY tagLink.tag.name"""
 
-                def tags = Tag.executeQuery(findTagsByTermAndProduct, [term: params.term+'%', product: p.id])
-                tags.addAll(Tag.executeQuery(findTagsByTermAndProductInTasks, [term: params.term+'%', product: p.id]))
+                def tags = Tag.executeQuery(findTagsByTermAndProduct, [term: term+'%', product: p.id])
+                tags.addAll(Tag.executeQuery(findTagsByTermAndProductInTasks, [term: term+'%', product: p.id]))
                 withFormat{
                     html {
                         render tags.unique() as JSON
@@ -45,24 +45,24 @@ class FinderController {
         }
 
         @Secured('inProduct()')
-        def list = {
+        def list(long product, String term) {
             def data = [:]
-            if (params.term){
-                data.actors =  Actor.findAllByTagWithCriteria(params.term) {
+            if (term){
+                data.actors =  Actor.findAllByTagWithCriteria(term) {
                     backlog {
-                        eq 'id', params.long('product')
+                        eq 'id', product
                     }
                 }
 
-                data.features = Feature.findAllByTagWithCriteria(params.term) {
+                data.features = Feature.findAllByTagWithCriteria(term) {
                     backlog {
-                        eq 'id', params.long('product')
+                        eq 'id', product
                     }
                 }
 
-                data.stories = Story.findAllByTagWithCriteria(params.term) {
+                data.stories = Story.findAllByTagWithCriteria(term) {
                     backlog {
-                        eq 'id', params.long('product')
+                        eq 'id', product
                     }
                 }
 
@@ -81,7 +81,7 @@ class FinderController {
                                            AND tagLink.tag.name LIKE :term
                                    ORDER BY task.name"""
 
-                data.tasks = Task.executeQuery(queryTasks, [term: params.term+'%'])
+                data.tasks = Task.executeQuery(queryTasks, [term: term+'%'])
             }
             withFormat{
                 html {

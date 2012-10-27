@@ -38,7 +38,7 @@ class SprintController {
     def springSecurityService
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def save = {
+    def save() {
         def releaseId = params.remove('parentRelease.id') ?: params.sprint.remove('parentRelease.id')
         if (!releaseId){
             returnError(text:message(code:'is.release.error.not.exist'))
@@ -69,7 +69,7 @@ class SprintController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def update = {
+    def update() {
         withSprint{ Sprint sprint ->
             // If the version is different, the sprint has been modified since the last loading
             if (params.sprint.version && params.long('sprint.version') != sprint.version) {
@@ -98,7 +98,7 @@ class SprintController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def delete = {
+    def delete() {
         withSprint{ Sprint sprint ->
             try {
                 def deletedSprints = sprintService.delete(sprint)
@@ -118,7 +118,7 @@ class SprintController {
 
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def unPlan = {
+    def unPlan() {
         withSprint{ Sprint sprint ->
             def unPlanAllStories = storyService.unPlanAll([sprint])
             withFormat {
@@ -130,7 +130,7 @@ class SprintController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def activate = {
+    def activate() {
         withSprint{ Sprint sprint ->
             sprintService.activate(sprint)
             withFormat {
@@ -142,7 +142,7 @@ class SprintController {
     }
 
     @Secured('(productOwner() or scrumMaster()) and !archivedProduct()')
-    def close = {
+    def close() {
         withSprint{ Sprint sprint ->
             def unDoneStories = sprint.stories.findAll {it.state != Story.STATE_DONE}
             sprintService.close(sprint)
@@ -155,7 +155,7 @@ class SprintController {
     }
 
     @Cacheable(cache = 'sprintCache', keyGenerator='sprintKeyGenerator')
-    def index = {
+    def index() {
         if (request?.format == 'html'){
             render(status:404)
             return
@@ -169,16 +169,16 @@ class SprintController {
         }
     }
 
-    def show = {
+    def show() {
         redirect(action:'index', controller: controllerName, params:params)
     }
 
-    def list = {
+    def list(long product, long id) {
         if (request?.format == 'html'){
             render(status:404)
             return
         }
-        if (params.id){
+        if (id){
             withRelease { Release release ->
                 withFormat {
                     json { renderRESTJSON(text:release.sprints) }
@@ -186,7 +186,7 @@ class SprintController {
                 }
             }
         }else{
-            def release = Release.findCurrentOrNextRelease(params.product).list()[0]
+            def release = Release.findCurrentOrNextRelease(product).list()[0]
             withFormat {
                 json { renderRESTJSON(text:release.sprints) }
                 xml  { renderRESTXML(text:release.sprints) }

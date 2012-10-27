@@ -57,7 +57,7 @@ class LoginController {
     /**
      * Default action; redirects to 'defaultTargetUrl' if logged in, /username/auth otherwise.
      */
-    def index = {
+    def index() {
         if (springSecurityService.isLoggedIn()) {
             redirect uri: SpringSecurityUtils.securityConfig.successHandler.defaultTargetUrl
         }
@@ -69,7 +69,7 @@ class LoginController {
     /**
      * Show the username page.
      */
-    def auth = {
+    def auth(String lang) {
 
         def config = SpringSecurityUtils.securityConfig
 
@@ -80,11 +80,11 @@ class LoginController {
         }
         session.invalidate()
 
-        def locale = params.lang ?: null
+        def locale = lang ?: null
         try {
             def localeAccept = request?.getHeader("accept-language")?.split(",")[0]?.split("-")
             if (localeAccept?.size() > 0) {
-                locale = params.lang ?: localeAccept[0].toString()
+                locale = lang ?: localeAccept[0].toString()
             }
         } catch (Exception e) {}
 
@@ -100,7 +100,7 @@ class LoginController {
     /**
      * Show denied page.
      */
-    def denied = {
+    def denied() {
         if (springSecurityService.isLoggedIn() &&
                 authenticationTrustResolver.isRememberMe(SecurityContextHolder.context?.authentication)) {
             // have cookie but the page is guarded with IS_AUTHENTICATED_FULLY
@@ -111,21 +111,21 @@ class LoginController {
     /**
      * Login page for users with a remember-me cookie but accessing a IS_AUTHENTICATED_FULLY page.
      */
-    def full = {
+    def full() {
         def config = SpringSecurityUtils.securityConfig
         render view: 'auth', params: params,
                 model: [hasCookie: authenticationTrustResolver.isRememberMe(SecurityContextHolder.context?.authentication),
                         postUrl: "${request.contextPath}${config.apf.filterProcessesUrl}"]
     }
 
-    def authAjax = {
+    def authAjax() {
         render(status: 401, text: [error: message(code: 'is.denied')] as JSON)
     }
 
     /**
      * Callback after a failed username. Redirects to the auth page with a warning message.
      */
-    def authfail = {
+    def authfail() {
 
         //IF the password is encode in MD5 (like an user imported
         // from IS2, on first connect it changes is password to SHA)
@@ -175,7 +175,7 @@ class LoginController {
     /**
      * The Ajax success redirect url.
      */
-    def ajaxSuccess = {
+    def ajaxSuccess() {
         User u = (User)springSecurityService.currentUser
         if (u.preferences.lastProductOpened){
             def url = grailsApplication.config.grails.serverURL+'/p/'+u.preferences.lastProductOpened
@@ -188,7 +188,7 @@ class LoginController {
     /**
      * The Ajax denied redirect url.
      */
-    def ajaxDenied = {
+    def ajaxDenied() {
         render(status: 403, text: message(code: 'is.denied'))
     }
 }

@@ -44,8 +44,8 @@
         <g:message code="is.dialog.retrieve.description"/>
       </is:fieldInformation>
 
-      <is:fieldInput for="text" label="is.dialog.retrieve.input" noborder="true">
-        <is:input name="text" id="text" />
+      <is:fieldInput for="username" label="is.dialog.retrieve.input" noborder="true">
+        <is:input name="username" id="username" />
       </is:fieldInput>
 
       <is:buttonBar id="retrieve-button-bar">

@@ -40,8 +40,8 @@ class ActorController {
     def springSecurityService
 
     @Cacheable(cache = 'searchActors', keyGenerator = 'actorsKeyGenerator')
-    def search = {
-        def actors = Actor.findActorByProductAndTerm(params.long('product'), '%' + params.term + '%').list()
+    def search(long product, String term) {
+        def actors = Actor.findActorByProductAndTerm(product, '%' + term + '%').list()
         def result = []
         actors?.each {
             result << [label: it.name, value: it.name]
@@ -50,15 +50,15 @@ class ActorController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def save = {
+    def save(long product) {
         if (!params.actor) return
 
         def actor = new Actor()
         bindData(actor, this.params, [include:['name','description','notes','satisfactionCriteria','instances','expertnessLevel','useFrequency']], "actor")
 
-        def product = Product.load(params.product)
+        Product p = Product.load(product)
         try {
-            actorService.save(actor, product)
+            actorService.save(actor, p)
             actor.tags = params.actor.tags instanceof String ? params.actor.tags.split(',') : (params.actor.tags instanceof String[] || params.actor.tags instanceof List) ? params.actor.tags : null
             this.manageAttachments(actor)
             withFormat {
@@ -74,7 +74,7 @@ class ActorController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def update = {
+    def update(long product, boolean table, String name) {
         withActor{Actor actor ->
 
             bindData(actor, this.params, [include:['name','description','notes','satisfactionCriteria','instances','expertnessLevel','useFrequency']], "actor")
@@ -82,26 +82,26 @@ class ActorController {
             actorService.update(actor)
             this.manageAttachments(actor)
             //if success for table view
-            if (params.table && params.boolean('table')) {
+            if (table) {
                 def returnValue
-                if (params.name == 'instances')
+                if (name == 'instances')
                     returnValue = message(code: BundleUtils.actorInstances[actor.instances])
-                else if (params.name == 'expertnessLevel')
+                else if (name == 'expertnessLevel')
                     returnValue = message(code: BundleUtils.actorLevels[actor.expertnessLevel])
-                else if (params.name == 'useFrequency')
+                else if (name == 'useFrequency')
                     returnValue = message(code: BundleUtils.actorFrequencies[actor.useFrequency])
-                else if (params.name == 'description' || params.name == 'satisfactionCriteria') {
-                    returnValue = actor[params.name]?.encodeAsHTML()?.encodeAsNL2BR()
+                else if (name == 'description' || name == 'satisfactionCriteria') {
+                    returnValue = actor[name]?.encodeAsHTML()?.encodeAsNL2BR()
                 }
                 else
-                    returnValue = actor[params.name].encodeAsHTML()
+                    returnValue = actor[name].encodeAsHTML()
                 def version = actor.isDirty() ? actor.version + 1 : actor.version
                 render(status: 200, text: [version: version, value: returnValue ?: ''] as JSON)
                 return
             }
             def next = null
             if (params.continue) {
-                def actors = Actor.findAllByBacklog(Product.load(params.product), [sort: 'useFrequency', order: 'asc']);
+                def actors = Actor.findAllByBacklog(Product.load(product), [sort: 'useFrequency', order: 'asc']);
                 def actorIndex = actors.indexOf(actor)
                 if (actors.size() > actorIndex + 1)
                     next = actors[actorIndex + 1].id
@@ -115,7 +115,7 @@ class ActorController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def delete = {
+    def delete() {
         withActors{List<Actor> actors ->
             actors.each { actor ->
                 actorService.delete(actor)
@@ -130,11 +130,11 @@ class ActorController {
         }
     }
 
-    def list = {
-        def actors = params.term ? Actor.findActorByProductAndTerm(params.long('product'), '%' + params.term + '%').list() : Actor.findAllByBacklog(Product.load(params.product), [sort: 'useFrequency', order: 'asc'])
+    def list(long product, String term, String windowType, String viewType) {
+        def actors = term ? Actor.findActorByProductAndTerm(product, '%' + term + '%').list() : Actor.findAllByBacklog(Product.load(product), [sort: 'useFrequency', order: 'asc'])
         withFormat{
             html {
-                def template = params.windowType == 'widget' ? 'widget/widgetView' : params.viewType ? 'window/' + params.viewType : 'window/postitsView'
+                def template = windowType == 'widget' ? 'widget/widgetView' : viewType ? 'window/' + viewType : 'window/postitsView'
                 def frequenciesSelect = BundleUtils.actorFrequencies.collect {k, v -> "'$k':'${message(code: v)}'" }.join(',')
                 def instancesSelect = BundleUtils.actorInstances.collect {k, v -> "'$k':'${message(code: v)}'" }.join(',')
                 def levelsSelect = BundleUtils.actorLevels.collect {k, v -> "'$k':'${message(code: v)}'" }.join(',')
@@ -150,7 +150,7 @@ class ActorController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def add = {
+    def add() {
         render(template: 'window/manage', model: [
                 instancesValues: BundleUtils.actorInstances.values().collect {v -> message(code: v)},
                 instancesKeys: BundleUtils.actorInstances.keySet().asList(),
@@ -162,9 +162,9 @@ class ActorController {
     }
 
     @Secured('productOwner() and !archivedProduct()')
-    def edit = {
+    def edit(long product) {
         withActor{ Actor actor ->
-            def actors = Actor.findAllByBacklog(Product.load(params.product), [sort: 'useFrequency', order: 'asc']);
+            def actors = Actor.findAllByBacklog(Product.load(product), [sort: 'useFrequency', order: 'asc']);
             def next = null
             def actorIndex = actors.indexOf(actor)
             if (actors.size() > actorIndex + 1)
@@ -214,12 +214,12 @@ class ActorController {
         }
     }
 
-    def show = {
+    def show() {
         redirect(action:'index', controller: controllerName, params:params)
     }
 
     @Cacheable(cache = 'actorCache', keyGenerator='actorKeyGenerator')
-    def index = {
+    def index() {
         if (request?.format == 'html'){
             render(status:404)
             return
@@ -233,14 +233,14 @@ class ActorController {
         }
     }
 
-    def print = {
-        def currentProduct = Product.load(params.product)
+    def print(long product, String format, boolean get, boolean status) {
+        def p = Product.load(product)
         def data = []
-        def actors = Actor.findAllByBacklog(currentProduct, [sort: 'useFrequency', order: 'asc']);
+        def actors = Actor.findAllByBacklog(p, [sort: 'useFrequency', order: 'asc']);
         if (!actors) {
             returnError(text:message(code: 'is.report.error.no.data'))
             return
-        } else if (params.get) {
+        } else if (get) {
             actors.each {
                 data << [
                         name: it.name,
@@ -253,8 +253,8 @@ class ActorController {
                         associatedStories: Story.findAllByTextAsIlike(it.name).size() ?: 0
                 ]
             }
-            outputJasperReport('actors', params.format, [[product: currentProduct.name, actors: data ?: null]], currentProduct.name)
-        } else if (params.status) {
+            outputJasperReport('actors', format, [[product: p.name, actors: data ?: null]], p.name)
+        } else if (status) {
             render(status: 200, contentType: 'application/json', text: session.progress as JSON)
         } else {
             session.progress = new ProgressSupport()
@@ -263,8 +263,8 @@ class ActorController {
         }
     }
 
-    def download = {
-        forward(action: 'download', controller: 'attachmentable', id: params.id)
+    def download(long id) {
+        forward(action: 'download', controller: 'attachmentable', id: id)
         return
     }
 }

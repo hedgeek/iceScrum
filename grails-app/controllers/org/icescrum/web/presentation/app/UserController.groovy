@@ -45,7 +45,7 @@ class UserController {
     def grailsApplication
 
     @Cacheable(cache = 'applicationCache', keyGenerator="localeKeyGenerator")
-    def register = {
+    def register(String lang) {
         if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.registration.enable)) {
             render(status: 403)
             return
@@ -54,9 +54,9 @@ class UserController {
         if (localeAccept)
             localeAccept = localeAccept[0]?.split("-")
 
-        def locale = params.lang ?: null
+        def locale = lang ?: null
         if (localeAccept?.size() > 0) {
-            locale = params.lang ?: localeAccept[0].toString()
+            locale = lang ?: localeAccept[0].toString()
         }
         if (locale)
             RCU.getLocaleResolver(request).setLocale(request, response, new Locale(locale))
@@ -66,12 +66,12 @@ class UserController {
 
     @Secured('isAuthenticated()')
     @Cacheable(cache = 'userCache', keyGenerator = 'userKeyGenerator')
-    def openProfile = {
+    def openProfile() {
         def dialog = g.render(template: 'dialogs/profile', model: [user: User.get(springSecurityService.principal.id)])
         render(status:200, contentType: 'application/json', text: [dialog:dialog] as JSON)
     }
 
-    def save = {
+    def save() {
         if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.registration.enable)) {
             render(status: 403)
             return
@@ -99,13 +99,13 @@ class UserController {
     }
 
     @Secured('isAuthenticated()')
-    def update = {
-        if (params.long('id') != springSecurityService.principal.id) {
+    def update(long id, String confirmPassword, String avatar) {
+        if (id != springSecurityService.principal.id) {
             returnError(text: message(code: 'is.stale.object', args: [message(code: 'is.user')]))
             return
         }
         withUser{ User currentUser ->
-            if ((params.confirmPassword || params.user.password) && (params.confirmPassword != params.user.password)) {
+            if ((confirmPassword || params.user.password) && (confirmPassword != params.user.password)) {
                 returnError(text: message(code: 'is.user.error.password.check'))
                 return
             }
@@ -122,19 +122,19 @@ class UserController {
             }
 
             def gravatar = ApplicationSupport.booleanValue(grailsApplication.config.icescrum.gravatar?.enable)
-            File avatar = null
             def scale = true
+            File imgAvatar = null
             if (!gravatar){
-                if (params.avatar) {
-                    "${params.avatar}"?.split(":")?.each {
+                if (avatar) {
+                    "${avatar}"?.split(":")?.each {
                         if (session.uploadedFiles[it])
-                            avatar = new File((String) session.uploadedFiles[it])
+                            imgAvatar = new File((String) session.uploadedFiles[it])
                     }
                 }
                 if (params."avatar-selected") {
                     def file = grailsApplication.parentContext.getResource(is.currentThemeImage().toString() + 'avatars/' + params."avatar-selected").file
                     if (file.exists()) {
-                        avatar = file
+                        imgAvatar = file
                         scale = false
                     }
                 }
@@ -143,7 +143,7 @@ class UserController {
             def forceRefresh = (params.user.preferences.language != currentUser.preferences.language)
             params.remove('user.username')
             currentUser.properties = params.user
-            userService.update(currentUser, pwd, (gravatar ? null : avatar?.canonicalPath), scale)
+            userService.update(currentUser, pwd, (gravatar ? null : imgAvatar?.canonicalPath), scale)
 
             def link = (params.product) ? createLink(controller: 'scrumOS', params: [product: params.product]) : createLink(uri: '/')
             def name = currentUser.firstName + ' ' + currentUser.lastName
@@ -161,9 +161,9 @@ class UserController {
         }
     }
 
-    def previewAvatar = {
-        if (session.uploadedFiles[params.fileID]) {
-            def avatar = new File((String) session.uploadedFiles[params.fileID])
+    def previewAvatar(String fileID) {
+        if (session.uploadedFiles[fileID]) {
+            def avatar = new File((String) session.uploadedFiles[fileID])
             OutputStream out = response.getOutputStream()
             out.write(avatar.bytes)
             out.close()
@@ -174,14 +174,14 @@ class UserController {
 
 
     @Secured('isAuthenticated()')
-    def profile = {
+    def profile(String id) {
 
-        def user = User.findByUsername(params.id)
+        def user = User.findByUsername(id)
         if (!user) {
             returnError(text:message(code:'is.user.error.not.exist'))
             return
         }
-        def permalink = createLink(absolute: true, mapping: "profile", id: params.id)
+        def permalink = createLink(absolute: true, mapping: "profile", id: id)
         def stories = Story.findAllByCreator(user, [order: 'desc', sort: 'lastUpdated', max: 150])
         def activities = Activity.findAllByPoster(user, [order: 'desc', sort: 'dateCreated', max: 15, cache:false])
         def tasks = Task.findAllByResponsibleAndState(user, Task.STATE_BUSY, [order: 'desc', sort: 'lastUpdated'])
@@ -227,15 +227,15 @@ class UserController {
     }
 
     @Secured('isAuthenticated()')
-    def profileURL = {
-        redirect(url: is.createScrumLink(controller: 'user', action: 'profile', id: params.id))
+    def profileURL(String id) {
+        redirect(url: is.createScrumLink(controller: 'user', action: 'profile', id: id))
     }
 
-    def avatar = {
-        def user = User.load(params.id)
+    def avatar(long id) {
+        def user = User.load(id)
         if (user) {
             if (!ApplicationSupport.booleanValue(grailsApplication.config.icescrum.gravatar?.enable)){
-                def avat = new File(grailsApplication.config.icescrum.images.users.dir.toString() + user.id + '.png')
+                def avat = new File(grailsApplication.config.icescrum.images.users.dir.toString() + id + '.png')
                 if (!avat.exists()) {
                     avat = grailsApplication.parentContext.getResource("/${is.currentThemeImage()}avatars/avatar.png").file
                 }
@@ -248,19 +248,19 @@ class UserController {
     }
 
     @Cacheable(cache = 'applicationCache', keyGenerator="localeKeyGenerator")
-    def retrieve = {
+    def retrieve(String username) {
         def activated = ApplicationSupport.booleanValue(grailsApplication.config.icescrum.login.retrieve.enable)
         if (!activated) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.login.retrieve.not.activated')]] as JSON)
             return
         }
 
-        if (!params.text) {
+        if (!username) {
             render view: '/user/retrieve'
             return
         }
 
-        def user = User.findWhere(username:params.text)
+        def user = User.findWhere(username:username)
 
         if (!user) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.user.error.not.exist')]] as JSON)
@@ -295,17 +295,16 @@ class UserController {
     }
 
     @Secured('isAuthenticated()')
-    def changeMenuOrder = {
-        if (!params.id && !params.position) {
+    def changeMenuOrder(String id, String position, boolean hidden) {
+        if (!id && !position) {
             render(status: 400, contentType: 'application/json', text: [notice: [text: message(code: 'is.user.preferences.error.menuBar')]] as JSON)
             return
         }
 
         def currentUser = User.get(springSecurityService.principal.id)
-        String id = "${params.id}".split("_")[1]
-        String position = params.position
+        id = "${id}".split("_")[1]
         try {
-            userService.changeMenuOrder(currentUser, id, position, params.boolean('hidden') ?: false)
+            userService.changeMenuOrder(currentUser, id, position, hidden ?: false)
             render(status: 200)
         } catch (RuntimeException e) {
             if (log.debugEnabled) e.printStackTrace()
@@ -314,12 +313,12 @@ class UserController {
     }
 
     @Secured('isAuthenticated()')
-    def findUsers = {
+    def findUsers(String term, boolean showDisabled) {
         def users
         def results = []
-        users = org.icescrum.core.domain.User.findUsersLike(params.term ?: '',false).list()
+        users = org.icescrum.core.domain.User.findUsersLike(term ?: '',false).list()
         users?.each { User user ->
-            if(user.enabled || params.showDisabled) {
+            if(user.enabled || showDisabled) {
                 results << [id: user.id,
                             name: "$user.firstName $user.lastName",
                             avatar: is.avatar([user:user,link:true]),
@@ -330,8 +329,8 @@ class UserController {
         render(results as JSON)
     }
 
-    def displayAvatar = {
-        def user = [id:params.id, email:params.email]
+    def displayAvatar(String id, String email) {
+        def user = [id:id, email:email]
         render is.avatar(user:user)
     }
 }
