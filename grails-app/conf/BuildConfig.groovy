@@ -31,12 +31,14 @@ grails.project.test.reports.dir = "target/test-reports"
 grails.project.war.file = "target/${appName}.war"
 
 grails.project.war.osgi.headers = false
+grails.plugin.location.'entry-points' =  '../entry-points'
+grails.plugin.location.'icescrum-core' = '../iceScrum-core'
 
 def environment = Environment.getCurrent()
 
 if (environment != Environment.PRODUCTION){
     println "use inline plugin in env: ${environment}"
-    grails.plugin.location.'icescrum-core' = '../plugins/icescrum-core'
+    grails.plugin.location.'icescrum-core' = '../icescrum-core'
 }
 
 coverage {
@@ -95,7 +97,7 @@ grails.project.dependency.resolution = {
     }
 
     plugins {
-        compile "org.icescrum:entry-points:0.4.2"
+  //      compile "org.icescrum:entry-points:0.4.2"
         compile ":cache-headers:1.1.5"
         compile ":cached-resources:1.0"
         compile ":feeds:1.5"
@@ -105,11 +107,13 @@ grails.project.dependency.resolution = {
         compile ":zipped-resources:1.0"
         compile ":yui-minify-resources:0.1.5"
         compile ":browser-detection:0.4.3"
+ //       test "org.spockframework:spock-grails-support:0.6-groovy-1.7"
         if (environment == Environment.PRODUCTION){
-            compile "org.icescrum:icescrum-core:1.6-SNAPSHOT"
+ //           compile "org.icescrum:icescrum-core:1.6-SNAPSHOT"
             compile ":tomcat:1.3.9"
         }else{
-            compile ":tomcatnio:1.3.4"
+//            compile ":tomcatnio:1.3.4"
+            compile ":tomcat:1.3.9"
         }
         test(":spock:0.6") {
             exclude "spock-grails-support"
@@ -119,6 +123,7 @@ grails.project.dependency.resolution = {
 }
 
 //iceScrum plugins management
+System.setProperty("icescrum.plugins.dir","../entry-points;../iceScrum-core")
 def iceScrumPluginsDir = System.getProperty("icescrum.plugins.dir") ?: false
 println "Compile and use icescrum plugins : ${iceScrumPluginsDir ? true : false}"
 
