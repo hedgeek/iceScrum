@@ -286,8 +286,21 @@
             formats="[
                         ['PDF', message(code:'is.report.format.pdf')]
                     ]"
+      
             text="${message(code: 'is.ui.sprintPlan.toolbar.print.stories')}"
             params="id=${sprint.id}"/>
+
+   
+   <is:reportPanel
+            separator="true"
+            action="printPostits"
+            id="all"
+            formats="[
+                        ['PDF', message(code:'is.report.format.pdf')]
+                    ]"
+      
+            text="Publish Stories and Tasks"
+            params="id=${sprint.id}&tasks=true"/>
 
 </g:if>
 

@@ -551,14 +551,91 @@ class SprintPlanController {
                             nbTestsFailed: testsByState[AcceptanceTestState.FAILED],
                             nbTestsSuccess: testsByState[AcceptanceTestState.SUCCESS]
                     ]
-                    if (first == 0) {
-                        stories1 << story
-                        first = 1
-                    } else {
-                        stories2 << story
-                        first = 0
-                    }
 
+                    if (params.tasks == "true")  // Output stories and tasks
+		    {
+                           // First add the story to column 1 of the report and advance column pointer for tasks
+                           stories1 << story
+			   first = 1
+			   // log.error("Check for tasks");
+			   it.tasks?.each {task->
+	 			// log.error("Task -> ${it.name} ${task.name}");
+                                task.parentStory?.name
+                                task.responsible?.lastName
+                                task.creator?.lastName
+		                 def taskContent = [
+		                    name: task.name,
+		                    id: it.uid + "-" + task.uid,
+		                    effort: task.estimation?task.estimation:task.initial,
+		                    state: message(code: BundleUtils.taskStates[task.state]),
+		                    description: task.description,
+		                    notes: wikitext.renderHtml([markup: 'Textile'], task.notes).decodeHTML(),
+		                    type: "Task",
+		                    suggestedDate:  null,
+		                    acceptedDate:  null,
+		                    estimatedDate: it.estimatedDate ? g.formatDate([formatName: 'is.date.format.short', timeZone: product.preferences.timezone, date: it.estimatedDate]) : null,
+		                    plannedDate:  null,
+		                    inProgressDate: task.inProgressDate ? g.formatDate([formatName: 'is.date.format.short', timeZone: product.preferences.timezone, date: task.inProgressDate]) : null,
+		                    doneDate: task.doneDate ? g.formatDate([formatName: 'is.date.format.short', timeZone: product.preferences.timezone, date: task.doneDate ?: null]) : null,
+		                    rank: task.rank ?: null,
+		                    sprint: g.message(code: 'is.release') + " " + sprint.parentRelease.orderNumber + " - " + g.message(code: 'is.sprint') + " " + sprint.orderNumber,
+		                    creator: task.responsible?.lastName ? (task.responsible?.firstName+" "+task.responsible?.lastName):"Not_Assigned",
+		                    feature:  it.name,
+		                    dependsOn: null,
+		                    permalink:null,
+		                    featureColor: task.color ?: null,
+		                    nbTestsTocheck: null,
+		                    nbTestsFailed: null,
+		                    nbTestsSuccess: null
+				]
+				if (first == 0) {                   // Fill in the tasks toggling for each report column
+		                	stories1 << taskContent
+		                	first = 1
+		           	 } else {
+		                	stories2 << taskContent
+		                	first = 0
+		            	}
+				// stories2 << taskContent
+		           }
+                           if (first == 1) {                // If we ended on an odd column, null fill so we can have the next story start on the left column
+                                def emptyContent = [
+		                    name: "",
+		                    id: "",
+		                    effort: "",
+		                    state: "",
+		                    description: "",
+		                    notes: "",
+		                    type: "",
+		                    suggestedDate:  null,
+		                    acceptedDate:  null,
+		                    estimatedDate: null,
+		                    plannedDate:  null,
+		                    inProgressDate:  null,
+		                    doneDate: null,
+		                    rank: null,
+		                    sprint: "",
+		                    creator: "",
+		                    feature:  "",
+		                    dependsOn: null,
+		                    permalink:null,
+		                    featureColor: null,
+		                    nbTestsTocheck: null,
+		                    nbTestsFailed: null,
+		                    nbTestsSuccess: null]
+		                stories2 << emptyContent
+		                first = 0
+		           } 
+			}
+			else  // Only output the stories (default case)
+			{  
+			    if (first == 0) {
+		                stories1 << story
+		                first = 1
+		            } else {
+		                stories2 << story
+		                first = 0
+		            }
+			}
                 }
                 outputJasperReport('stories', params.format, [[product: product.name, stories1: stories1 ?: null, stories2: stories2 ?: null]], product.name)
             } else if (params.status) {
@@ -567,6 +644,7 @@ class SprintPlanController {
                 session.progress = new ProgressSupport()
                 def dialog = g.render(template: '/scrumOS/report', model: [sprint: sprint])
                 render(status: 200, contentType: 'application/json', text: [dialog:dialog] as JSON)
+                //log("dumped the dialog ${dialog}")
             }
         }
     }
